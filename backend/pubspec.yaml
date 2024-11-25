@@ -12,17 +12,22 @@ dependencies:
   cupertino_icons: ^1.0.8
   http: ^1.2.2
   shared_preferences: ^2.3.3
-  flutter_native_splash: ^2.4.3
+  animations: ^2.0.11
+  image_picker: ^1.1.2
+  image_cropper: ^8.0.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.3
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/images/introduction_screen/
     - assets/json/
     - assets/fonts/
 
@@ -56,22 +61,39 @@ flutter:
         - asset: assets/fonts/Poppins/Poppins-Italic.ttf
           style: italic
 
-flutter_native_splash:
-  color: "#B2DF1F"
-  image: assets/images/splash_image.png
-  fullscreen: true
-  android_gravity: center
-  ios_content_mode: center
-  branding_mode: bottom
+# flutter_native_splash:
+#   color: "#B2DF1F"
+#   image: assets/images/splash_image.png
+#   fullscreen: true
+#   android_gravity: center
+#   ios_content_mode: center
+#   branding_mode: bottom
 
-  android_12:
-    color: "#B2DF1F"
-    image: assets/images/app_icon.png
-    branding: assets/images/branding_image.png
-    icon_background_color: "#B2DF1F"
-    fullscreen: true
-    android_gravity: center
-    ios_content_mode: center
-    branding_mode: bottom
+#   android_12:
+#     color: "#B2DF1F"
+#     image: assets/images/app_icon.png
+#     branding: assets/images/branding_image.png
+#     icon_background_color: "#B2DF1F"
+#     fullscreen: true
+#     android_gravity: center
+#     ios_content_mode: center
+#     branding_mode: bottom
 
-  web: false
+#   web: false
+
+# flutter_launcher_icons:
+#   android: "launcher_icon"
+#   ios: true
+#   image_path: "assets/images/launcher_icon.png" 
+#   web:
+#     generate: true
+#     image_path: "assets/icon/launcher_icon.png" 
+#     background_color: "#FFFFFF"
+#     theme_color: "#000000"
+#   windows:
+#     generate: true
+#     image_path: "assets/icon/launcher_icon.png"
+#     icon_size: 256
+#   macos:
+#     generate: true
+#     image_path: "assets/icon/launcher_icon.png"
