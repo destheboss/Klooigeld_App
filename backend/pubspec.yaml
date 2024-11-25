@@ -12,6 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   http: ^1.2.2
   shared_preferences: ^2.3.3
+  flutter_native_splash: ^2.4.3
 
 dev_dependencies:
   flutter_test:
@@ -55,3 +56,22 @@ flutter:
         - asset: assets/fonts/Poppins/Poppins-Italic.ttf
           style: italic
 
+flutter_native_splash:
+  color: "#B2DF1F"
+  image: assets/images/splash_image.png
+  fullscreen: true
+  android_gravity: center
+  ios_content_mode: center
+  branding_mode: bottom
+
+  android_12:
+    color: "#B2DF1F"
+    image: assets/images/app_icon.png
+    branding: assets/images/branding_image.png
+    icon_background_color: "#B2DF1F"
+    fullscreen: true
+    android_gravity: center
+    ios_content_mode: center
+    branding_mode: bottom
+
+  web: false
