@@ -1,3 +1,4 @@
+import 'package:backend/screens/(learning_road)/learning-road_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,7 +41,7 @@ class SleepApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       // For now, always show HomeScreen (commenting out introduction screen logic)
-      home: const HomeScreen(),
+      home:  LearningRoadScreen(),
       // Uncomment this to enable introduction screen logic
       // home: hasSeenIntroduction
       //     ? const HomeScreen()
