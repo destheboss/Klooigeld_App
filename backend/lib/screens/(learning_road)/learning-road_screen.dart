@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:backend/screens/(learning_road)/widgets/klooigeld_display.dart';
-import 'package:backend/screens/(learning_road)/widgets/snake.dart';
+import 'package:backend/screens/(learning_road)/widgets/road.dart';
 import 'package:backend/screens/(learning_road)/widgets/stop-widget.dart';
 import 'package:flutter/material.dart';
 
@@ -10,30 +10,91 @@ class LearningRoadScreen extends StatefulWidget {
   State<LearningRoadScreen> createState() => _LearningRoadScreenState();
 }
 
-class _LearningRoadScreenState extends State<LearningRoadScreen> {
+class _LearningRoadScreenState extends State<LearningRoadScreen> 
+with SingleTickerProviderStateMixin {
   final List<Map<String, dynamic>> stops = [
     {"id": 1, "icon": Icons.credit_card, "status": "unlocked"},
     {"id": 2, "icon": Icons.monetization_on, "status": "unlocked"},
-    {"id": 3, "icon": Icons.lock, "status": "unlocked"},
-    {"id": 4, "icon": Icons.lock, "status": "unlocked"},
-    {"id": 5, "icon": Icons.lock, "status": "unlocked"},
-    {"id": 6, "icon": Icons.lock, "status": "unlocked"},
+    {"id": 3, "icon": Icons.lock, "status": "locked"},
+    {"id": 4, "icon": Icons.lock, "status": "locked"},
+    {"id": 5, "icon": Icons.lock, "status": "locked"},
+    {"id": 6, "icon": Icons.lock, "status": "locked"},
     {"id": 7, "icon": Icons.lock, "status": "locked"},
     {"id": 8, "icon": Icons.lock, "status": "locked"},
     {"id": 9, "icon": Icons.lock, "status": "locked"},
     {"id": 10, "icon": Icons.lock, "status": "locked"},
   ];
 
-  // Colors for unlocked stops
+  int unlockedIndex = 0;
+  double initialProgress = 0.0;
+  late AnimationController _controller;
+  late Animation<double> _animation;
   final List<Color> unlockedStopColors = [
-    Color(0xFFB2DF1F), // Purple
+    Color(0xFF99cf2d), // Purple
     Color(0xFFF787D9), // Pink
-    Color(0xFFC8BBF3), // Dark Blue
-    //Color(0xFFB2DF1F), // Purple
+    Color(0xFF2922FF), // Dark Blue
+    Color(0xFFC8BBF3), // Purple
+  ];
+  final List<IconData> financeIcons = [
+    Icons.attach_money,
+    Icons.account_balance,
+    Icons.savings,
+    Icons.pie_chart,
+    Icons.trending_up,
+    Icons.credit_card,
   ];
 
+  
+  static const Color klooigeldDarkGroen = Color(0xFF7D9D16);
+
+
+   @override
+  void initState() {
+    super.initState();
+
+    // Determine the last unlocked stop
+    unlockedIndex = stops.lastIndexWhere((stop) => stop['status'] == 'unlocked');
+
+    _controller = AnimationController(
+      duration: Duration(seconds: 1),
+      vsync: this,
+    );
+
+    double initialProgress = (unlockedIndex  )/ stops.length ;
+    _animation = Tween<double>(begin: initialProgress, end: initialProgress).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
+    _controller.value = initialProgress;
+
+    _controller.addListener(() {
+      setState(() {});
+    });
+  }
+
+  void unlockNextStop() {
+    if (unlockedIndex < stops.length - 1) {
+        double startProgress = unlockedIndex / stops.length;
+        double endProgress = (unlockedIndex + 1) / stops.length;
+
+        _animation = Tween<double>(begin: startProgress, end: endProgress).animate(
+          CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+        );
+
+        _controller.forward(from: 0).then((_) {
+          Future.delayed(Duration(milliseconds: 200), () {
+            setState(() {
+              stops[unlockedIndex + 1]['status'] = 'unlocked';
+              stops[unlockedIndex + 1]['icon'] = financeIcons[unlockedIndex % financeIcons.length];
+              unlockedIndex++;
+            });
+          });
+        });
+    }
+  }
+
+
   final double userBalance = 1250.50; 
- // Example user balance
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,9 +107,9 @@ class _LearningRoadScreenState extends State<LearningRoadScreen> {
             fontSize: 20,
           ),
         ),
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.white,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
             Navigator.pop(context); 
           },
@@ -72,9 +133,8 @@ class _LearningRoadScreenState extends State<LearningRoadScreen> {
                   constraints.maxHeight * 2 + bottomMargin;
               Size size = Size(constraints.maxWidth, totalHeight);
 
-              RoadmapPainter roadmapPainter = RoadmapPainter(stops.length);
-              roadmapPainter.paint(Canvas(PictureRecorder()), size);
-
+              RoadmapPainter roadmapPainter = RoadmapPainter(stops.length, _animation.value);
+              roadmapPainter.calculateStopPositions(size);
               List<Offset> stopPositions = roadmapPainter.stopPositions;
 
               return Stack(
@@ -99,8 +159,7 @@ class _LearningRoadScreenState extends State<LearningRoadScreen> {
                                 status: stops[i]['status'],
                                 isActive: stops[i]['status'] == 'unlocked',
                                 color: stops[i]['status'] == 'unlocked'
-                                    ? unlockedStopColors[i %
-                                        unlockedStopColors.length]
+                                    ? unlockedStopColors[i % unlockedStopColors.length]
                                     : Colors.white.withOpacity(0.8),
                               ),
                             ),
@@ -170,6 +229,14 @@ class _LearningRoadScreenState extends State<LearningRoadScreen> {
                         ],
                       ),
                       child: KlooigeldDisplay(balance: userBalance),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 16,
+                    right: 16,
+                    child: FloatingActionButton(
+                      onPressed: unlockNextStop,
+                      child: Icon(Icons.arrow_forward),
                     ),
                   ),
                 ],
