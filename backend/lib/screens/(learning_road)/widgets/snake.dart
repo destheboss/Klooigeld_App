@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+
+import 'package:flutter/material.dart';
 class RoadmapPainter extends CustomPainter {
   final List<Offset> stopPositions = [];
   final int numberOfStops;
@@ -8,9 +11,9 @@ class RoadmapPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     Paint paint = Paint()
-      ..color = Colors.black
+      ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 10;
+      ..strokeWidth = 15;
 
     Path path = Path();
 

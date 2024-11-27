@@ -1,120 +1,182 @@
 import 'dart:math';
 import 'dart:ui';
+import 'package:backend/screens/(learning_road)/widgets/klooigeld_display.dart';
 import 'package:backend/screens/(learning_road)/widgets/snake.dart';
 import 'package:backend/screens/(learning_road)/widgets/stop-widget.dart';
 import 'package:flutter/material.dart';
 
-class LearningRoadScreen extends StatelessWidget {
+class LearningRoadScreen extends StatefulWidget {
+  @override
+  State<LearningRoadScreen> createState() => _LearningRoadScreenState();
+}
+
+class _LearningRoadScreenState extends State<LearningRoadScreen> {
   final List<Map<String, dynamic>> stops = [
     {"id": 1, "icon": Icons.credit_card, "status": "unlocked"},
-    {"id": 2, "icon": Icons.monetization_on, "status": "locked"},
-    {"id": 3, "icon": Icons.lock, "status": "locked"},
-    {"id": 4, "icon": Icons.lock, "status": "locked"},
-    {"id": 5, "icon": Icons.lock, "status": "locked"},
-    {"id": 6, "icon": Icons.lock, "status": "locked"},
+    {"id": 2, "icon": Icons.monetization_on, "status": "unlocked"},
+    {"id": 3, "icon": Icons.lock, "status": "unlocked"},
+    {"id": 4, "icon": Icons.lock, "status": "unlocked"},
+    {"id": 5, "icon": Icons.lock, "status": "unlocked"},
+    {"id": 6, "icon": Icons.lock, "status": "unlocked"},
     {"id": 7, "icon": Icons.lock, "status": "locked"},
     {"id": 8, "icon": Icons.lock, "status": "locked"},
     {"id": 9, "icon": Icons.lock, "status": "locked"},
     {"id": 10, "icon": Icons.lock, "status": "locked"},
   ];
 
-  // Colors
-  static const Color unlockedColor = Color(0xFFF787D9); // Pink for unlocked stops
-  static const Color lockedColor = Color(0xFF7D9D16); // Dark green for locked stops
-  static const Color iconColor = Colors.white;
-  static const Color appBarColor = Color(0xFF1D1999); // Blue for AppBar
-  static const Color textColor = Color(0xFF000000);
+  // Colors for unlocked stops
+  final List<Color> unlockedStopColors = [
+    Color(0xFFB2DF1F), // Purple
+    Color(0xFFF787D9), // Pink
+    Color(0xFFC8BBF3), // Dark Blue
+    //Color(0xFFB2DF1F), // Purple
+  ];
 
+  final double userBalance = 1250.50; 
+ // Example user balance
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Learning Road",
-          style: TextStyle(color: textColor),
+          "Games",
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
-        backgroundColor: appBarColor,
+        backgroundColor: Colors.black,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: textColor),
+          icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.pop(context); // Navigate back
+            Navigator.pop(context); 
           },
         ),
       ),
-      backgroundColor: Colors.white, // Keep background white
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          double bottomMargin = constraints.maxHeight * 0.3; // Bottom margin
-          double totalHeight =
-              constraints.maxHeight * 2 + bottomMargin; // Include bottom margin
-          Size size = Size(constraints.maxWidth, totalHeight);
-
-          // Initialize RoadmapPainter with the number of stops
-          RoadmapPainter roadmapPainter = RoadmapPainter(stops.length);
-          roadmapPainter.paint(Canvas(PictureRecorder()), size);
-
-          List<Offset> stopPositions = roadmapPainter.stopPositions;
-
-          return Stack(
-            children: [
-              SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: SizedBox(
-                  width: size.width,
-                  height: size.height,
-                  child: Stack(
-                    children: [
-                      CustomPaint(
-                        size: size,
-                        painter: roadmapPainter,
-                      ),
-                      // Place stops dynamically
-                      for (int i = 0; i < stopPositions.length; i++)
-                        Positioned(
-                          left: stopPositions[i].dx - 30,
-                          top: stopPositions[i].dy - 30,
-                          child: StopWidget(
-                            icon: stops[i % stops.length]['icon'],
-                            status: stops[i % stops.length]['status'],
-                            isActive: stops[i % stops.length]['status'] ==
-                                'unlocked',
-                          ),
-                        ),
-                      // Add a floating action button for progress details
-                      Positioned(
-                        right: 16,
-                        bottom: 16,
-                        child: FloatingActionButton(
-                          backgroundColor: appBarColor,
-                          onPressed: () {
-                            // Show progress details
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: Text("Learning Progress"),
-                                content: Text(
-                                  "Keep going! You have ${stops.where((s) => s['status'] == 'locked').length} stops left to unlock.",
-                                  style: TextStyle(color: textColor),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: Text("Close", style: TextStyle(color: appBarColor)),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                          child: Icon(Icons.info, color: iconColor),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFC8BBF3), Color(0xFF1D1999)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
-            ],
-          );
-        },
+            ),
+          ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              double bottomMargin = constraints.maxHeight * 0.3;
+              double totalHeight =
+                  constraints.maxHeight * 2 + bottomMargin;
+              Size size = Size(constraints.maxWidth, totalHeight);
+
+              RoadmapPainter roadmapPainter = RoadmapPainter(stops.length);
+              roadmapPainter.paint(Canvas(PictureRecorder()), size);
+
+              List<Offset> stopPositions = roadmapPainter.stopPositions;
+
+              return Stack(
+                children: [
+                  SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: SizedBox(
+                      width: size.width,
+                      height: size.height,
+                      child: Stack(
+                        children: [
+                          CustomPaint(
+                            size: size,
+                            painter: roadmapPainter,
+                          ),
+                          for (int i = 0; i < stopPositions.length; i++)
+                            Positioned(
+                              left: stopPositions[i].dx - 30,
+                              top: stopPositions[i].dy - 30,
+                              child: StopWidget(
+                                icon: stops[i]['icon'],
+                                status: stops[i]['status'],
+                                isActive: stops[i]['status'] == 'unlocked',
+                                color: stops[i]['status'] == 'unlocked'
+                                    ? unlockedStopColors[i %
+                                        unlockedStopColors.length]
+                                    : Colors.white.withOpacity(0.8),
+                              ),
+                            ),
+                          Positioned(
+                            right: 16,
+                            bottom: 16,
+                            child: FloatingActionButton(
+                              backgroundColor: Color(0xFF1D1999),
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    backgroundColor: Color(0xFFC8BBF3),
+                                    title: Text(
+                                      "Learning Progress",
+                                      style: TextStyle(
+                                        color: Color(0xFF000000),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    content: Text(
+                                      "Keep going! You have ${stops.where((s) => s['status'] == 'locked').length} stops left to unlock.",
+                                      style: TextStyle(color: Color(0xFF000000)),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context),
+                                        child: Text(
+                                          "Close",
+                                          style: TextStyle(
+                                            color: Color(0xFF1D1999),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              child: Icon(Icons.info, color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 16,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: KlooigeldDisplay(balance: userBalance),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }

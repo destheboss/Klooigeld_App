@@ -1,15 +1,16 @@
 import 'package:backend/screens/(learning_road)/learning-road_screen.dart';
 import 'package:flutter/material.dart';
-
 class StopWidget extends StatelessWidget {
   final IconData icon;
   final String status;
   final bool isActive;
+  final Color color;
 
   StopWidget({
     required this.icon,
     required this.status,
     required this.isActive,
+    required this.color,
   });
 
   @override
@@ -21,20 +22,26 @@ class StopWidget extends StatelessWidget {
             ? () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text("Great job! You've reached an unlocked stop."),
+                    content: Text(
+                      "Great job! You've reached an unlocked stop.",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    backgroundColor: color,
                   ),
                 );
               }
             : null,
-        child: CircleAvatar(
-          radius: 40,
-          backgroundColor: isActive
-              ? LearningRoadScreen.unlockedColor
-              : LearningRoadScreen.lockedColor,
-          child: Icon(
-            icon,
-            color: LearningRoadScreen.iconColor,
-            size: 50,
+        child: AnimatedContainer(
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          child: CircleAvatar(
+            radius: 40,
+            backgroundColor: isActive ? color : Colors.white.withOpacity(0.8),
+            child: Icon(
+              icon,
+              color: isActive ? Colors.white : Colors.black.withOpacity(0.6),
+              size: 50,
+            ),
           ),
         ),
       ),

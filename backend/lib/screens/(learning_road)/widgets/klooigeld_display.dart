@@ -15,13 +15,15 @@ class KlooigeldDisplay extends StatelessWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            color: Colors.black, 
           ),
         ),
         SizedBox(width: 4),
-        Icon(
-          Icons.attach_money,
-          color: Colors.green,
-          size: 20,
+        Image.asset(
+          'assets/symbols/klooigeld_symbol.png',
+          width: 20,
+          height: 20,
+          fit: BoxFit.contain,
         ),
       ],
     );
