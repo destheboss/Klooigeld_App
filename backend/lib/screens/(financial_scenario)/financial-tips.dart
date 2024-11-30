@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:backend/screens/(financial_scenario)/financial-scenario_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -16,7 +18,7 @@ class _FinancialTipsLayoutState extends State<FinancialTipsLayout> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Finance Screen',
+          'Here are our tips:',
           style: TextStyle(
             fontFamily: 'NeighborBlack', // TITLES FONT
           ),
@@ -31,7 +33,7 @@ class _FinancialTipsLayoutState extends State<FinancialTipsLayout> {
           ),
         ),
       ),
-      bottomNavigationBar: _clickedCards.length == 3 // Show "Next" only when all cards are clicked
+      floatingActionButton: _clickedCards.length == 3 // Show "Next" only when all cards are clicked
           ? Padding(
         padding: const EdgeInsets.all(16.0),
         child: ElevatedButton(
@@ -39,15 +41,19 @@ class _FinancialTipsLayoutState extends State<FinancialTipsLayout> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => FinancialScenarioLayout(),
+                builder: (context) => FinancialScenarioLayout(),        
               ),
             );
           },
+            style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
+           backgroundColor:  Color.fromRGBO(247, 135, 217, 1),
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: const [
               Text('Next'),
-              Icon(Icons.arrow_forward),
+              Icon(Icons.arrow_forward),                        
             ],
           ),
         ),

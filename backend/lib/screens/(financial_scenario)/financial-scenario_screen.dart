@@ -29,32 +29,63 @@ class _ChatBubbleScreenState extends State<ChatBubbleScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Finance Stuff"),
-        backgroundColor: Color.fromRGBO(247, 135, 217, 1),
       ),
-      body: Center(
-        child: GestureDetector(
-          onTap: toggleBubble,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // First bubble always displayed
-              ChatBubble(
-                text: "Hello! I love money <3.",
-                isFromLeft: true,
-                icon: Icons.message,
-              ),
-              const SizedBox(height: 20), // Space between bubbles
-              // Second bubble conditionally displayed
-              if (showReplyBubble)
-                ChatBubble(
-                  text: "Hi there! Me too!!",
-                  isFromLeft: false,
-                  icon: Icons.reply,
+      body: Column(
+        children: [
+          SizedBox(height: 20),
+ Padding(
+            padding: const EdgeInsets.only(left: 20.0),  // Space from the left side
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start, // Align the children to the start (left)
+              children: [
+                Container(
+                  height: 30,
+                  width: 280,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300, // Grey color for the bar
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(15),
+                      bottomRight: Radius.circular(15),
+                      topLeft: Radius.circular(15),
+                      topRight: Radius.circular(15),
+                    ),
+                  ),
                 ),
-            ],
+                SizedBox(width: 10), // Add some spacing between the containers
+                Container(
+                  child: Text("1000.00 K"),
+                ),
+              ],
+            ),
           ),
-        ),
+          Expanded(
+            child: GestureDetector(
+              onTap: toggleBubble,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // First bubble always displayed
+                    ChatBubble(
+                      text: "Hello! I love money <3.",
+                      isFromLeft: true,
+                      icon: Icons.message,
+                    ),
+                    const SizedBox(height: 20), // Space between bubbles
+                    // Second bubble conditionally displayed
+                    if (showReplyBubble)
+                      ChatBubble(
+                        text: "Hi there! Me too!!",
+                        isFromLeft: false,
+                        icon: Icons.reply,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
