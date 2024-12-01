@@ -1,10 +1,10 @@
 import 'dart:math';
 import 'dart:ui';
-
-import 'package:backend/screens/(learning_road)/learning-road_screen.dart';
 import 'package:flutter/material.dart';
+
 class RoadmapPainter extends CustomPainter {
-    static const Color klooigeldDarkGroen = Color(0xFFB2DF1F);
+  static const Color klooigeldDarkGroen = Color(0xFFB2DF1F);
+  static const Color white = Colors.white;
 
   final int numberOfStops;
   final double progress; // Progress of the green road (0.0 to 1.0)
@@ -13,7 +13,7 @@ class RoadmapPainter extends CustomPainter {
   RoadmapPainter(this.numberOfStops, this.progress);
 
   void calculateStopPositions(Size size) {
-    stopPositions.clear(); 
+    stopPositions.clear();
 
     double lineLength = size.width * 0.4;
     double circleRadius = size.width * 0.20;
@@ -33,22 +33,27 @@ class RoadmapPainter extends CustomPainter {
       }
 
       startY += 2 * circleRadius;
-      goingRight = !goingRight; 
+      goingRight = !goingRight;
     }
   }
 
   @override
   void paint(Canvas canvas, Size size) {
     calculateStopPositions(size);
+
     Paint whitePaint = Paint()
-      ..color = Colors.white
+      ..color = white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 15;
+      ..strokeWidth = 20;
 
     Paint greenPaint = Paint()
-      ..color = klooigeldDarkGroen
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 15;
+      ..strokeWidth = 20;
+
+    Paint shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.2)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 21;
 
     Path path = Path();
 
@@ -61,7 +66,6 @@ class RoadmapPainter extends CustomPainter {
     path.moveTo(startX, startY);
 
     bool goingRight = true;
-    double totalPathLength = 0.0;
 
     for (int i = 0; i < numberOfStops; i++) {
       if (goingRight) {
@@ -87,16 +91,29 @@ class RoadmapPainter extends CustomPainter {
     }
 
     double totalLength = path.computeMetrics().fold(0, (sum, metric) => sum + metric.length);
-
     double greenLength = totalLength * progress;
     double coveredLength = 0.0;
 
+    // Draw shadow for the entire path
+    canvas.drawPath(path, shadowPaint);
+
+    // Draw the gradient for the green section
+    Shader greenShader = LinearGradient(
+      colors: [Color.fromARGB(255, 114, 143, 21), Color.fromARGB(255, 184, 228, 37)], // Gradient from dark to light green
+    ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    greenPaint.shader = greenShader;
+
+    // Draw the green and white parts of the path
     for (PathMetric metric in path.computeMetrics()) {
       if (coveredLength + metric.length < greenLength) {
         canvas.drawPath(metric.extractPath(0, metric.length), greenPaint);
         coveredLength += metric.length;
       } else {
+        // Green part
         canvas.drawPath(metric.extractPath(0, greenLength - coveredLength), greenPaint);
+
+        // White part
         canvas.drawPath(metric.extractPath(greenLength - coveredLength, metric.length), whitePaint);
         break;
       }

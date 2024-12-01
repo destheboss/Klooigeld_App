@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Import screens
-import 'screens/(home)/home_screen.dart';
 // import 'screens/(introduction)/introduction_screen.dart';
 
 void main() async {
