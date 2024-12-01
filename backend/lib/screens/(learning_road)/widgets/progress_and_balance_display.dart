@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:ui';
 import 'package:backend/screens/(learning_road)/widgets/animated_dialog.dart';
 import 'package:backend/screens/(learning_road)/widgets/progress_line_indicator.dart';
@@ -39,26 +38,47 @@ class _ProgressAndBalanceDisplayState extends State<ProgressAndBalanceDisplay>
   }
 
   void _showCurrencyExplanationDialog() {
-  showDialog(
-    context: context,
-    builder: (context) => AnimatedDialog(
-      child: Center(
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Background Image
-            Image.asset(
-              'assets/images/learning_road/klooigeld_container.png',
-              width: MediaQuery.of(context).size.width * 0.9, // 80% of screen width
-              height: MediaQuery.of(context).size.height * 0.6, // 50% of screen height
-              fit: BoxFit.contain,
-            ),
-          ],
+    showDialog(
+      context: context,
+      builder: (context) => AnimatedDialog(
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.all(16),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Image.asset(
+                'assets/images/learning_road/klooigeld_container.png',
+                width: MediaQuery.of(context).size.width * 0.9,
+                height: MediaQuery.of(context).size.height * 0.6,
+                fit: BoxFit.contain,
+              ),
+              Positioned(
+                top: 110,
+                right: 20,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context), 
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: klooigeldBlauw,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 25,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
+
 
 
  @override

@@ -35,12 +35,12 @@ class StopWidget extends StatelessWidget {
                 : [],
           ),
           child: CircleAvatar(
-            radius: 40,
+            radius: 50,
             backgroundColor: Colors.transparent,
             child: Icon(
               icon,
               color: isActive ? Colors.white : Colors.black.withOpacity(0.6),
-              size: 50,
+              size: 60,
             ),
           ),
         ),

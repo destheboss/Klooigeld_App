@@ -88,6 +88,7 @@ class RoadmapPainter extends CustomPainter {
 
       startY += 2 * circleRadius;
       goingRight = !goingRight;
+      
     }
 
     double totalLength = path.computeMetrics().fold(0, (sum, metric) => sum + metric.length);
@@ -96,6 +97,13 @@ class RoadmapPainter extends CustomPainter {
 
     // Draw shadow for the entire path
     canvas.drawPath(path, shadowPaint);
+
+    path.lineTo(startX * (2 * circleRadius), startY);
+
+    if (progress == 1.0) {
+      canvas.drawPath(path, greenPaint..color = Color(0xFF99cf2d)); // Full green color
+      return;
+    }
 
     // Draw the gradient for the green section
     Shader greenShader = LinearGradient(

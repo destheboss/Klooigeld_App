@@ -14,12 +14,12 @@ with SingleTickerProviderStateMixin {
   final List<Map<String, dynamic>> stops = [
     {"id": 1, "icon": Icons.credit_card, "status": "unlocked", "title": "Level 1: Introduction to Finance", "info": "Learn about the currencies and how to convert them."},
     {"id": 2, "icon": Icons.monetization_on, "status": "unlocked", "title": "Level 2: Budgeting Basics", "info": "What is a budget and why do I need one when shopping?"},
-    {"id": 3, "icon": Icons.lock, "status": "locked", "title": "Level 3: Investing for Beginners", "info": "I have money, so where do I put them?"},
-    {"id": 4, "icon": Icons.lock, "status": "locked", "title": "Level 4: Managing Debt", "info": "Understand how to manage loans and pay off debt effectively."},
-    {"id": 5, "icon": Icons.lock, "status": "locked", "title": "Level 5: Saving Strategies", "info": "Discover practical ways to save money and grow your savings."},
-    {"id": 6, "icon": Icons.lock, "status": "locked", "title": "Level 6: Advanced Investing", "info": "Explore stocks, bonds, and mutual funds to diversify your investments."},
-    {"id": 7, "icon": Icons.lock, "status": "locked", "title": "Level 7: Financial Planning", "info": "Learn how to plan for big purchases and set long-term financial goals."},
-    {"id": 8, "icon": Icons.lock, "status": "locked", "title": "Level 8: Understanding Taxes", "info": "Find out how taxes work and how they affect your income."},
+    {"id": 3, "icon": Icons.lock, "status": "unlocked", "title": "Level 3: Investing for Beginners", "info": "I have money, so where do I put them?"},
+    {"id": 4, "icon": Icons.lock, "status": "unlocked", "title": "Level 4: Managing Debt", "info": "Understand how to manage loans and pay off debt effectively."},
+    {"id": 5, "icon": Icons.lock, "status": "unlocked", "title": "Level 5: Saving Strategies", "info": "Discover practical ways to save money and grow your savings."},
+    {"id": 6, "icon": Icons.lock, "status": "unlocked", "title": "Level 6: Advanced Investing", "info": "Explore stocks, bonds, and mutual funds to diversify your investments."},
+    {"id": 7, "icon": Icons.lock, "status": "unlocked", "title": "Level 7: Financial Planning", "info": "Learn how to plan for big purchases and set long-term financial goals."},
+    {"id": 8, "icon": Icons.lock, "status": "unlocked", "title": "Level 8: Understanding Taxes", "info": "Find out how taxes work and how they affect your income."},
     { "id": 9,"icon": Icons.lock,"status": "locked","title": "Level 9: Credit Scores Explained","info": "Discover how credit scores are calculated and how to improve yours."},
     {"id": 10,"icon": Icons.lock,"status": "locked", "title": "Level 10: Building Wealth", "info": "Learn strategies to build wealth and secure your financial future."},
   ];
@@ -34,10 +34,10 @@ with SingleTickerProviderStateMixin {
   bool isWhiteToPurple  = false;
   int unlockedIndex = 0;
   double initialProgress = 0.0;
+  bool isLastLevelComplete = false;
   
   late AnimationController _controller;
   final ScrollController _scrollController = ScrollController();
-  late Animation<Color?> _backgroundAnimation;
   late Animation<double> _iconPositionAnimation;
   late Animation<double> _animation;
 
@@ -70,8 +70,6 @@ with SingleTickerProviderStateMixin {
       vsync: this,
     );
 
-    _updateBackgroundAnimation();
-
       // Initialize icon animation
     _iconPositionAnimation = Tween<double>(
       begin: unlockedIndex / (stops.length - 1),
@@ -90,20 +88,6 @@ with SingleTickerProviderStateMixin {
     });
   }
 
-  void _updateBackgroundAnimation() {
-  if (isWhiteToPurple) {
-    _backgroundAnimation = ColorTween(
-      begin: klooigeldPaars, 
-      end: klooigeldBlauw,  
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-  } else {
-    _backgroundAnimation = ColorTween(
-      begin: klooigeldBlauw,
-      end: klooigeldPaars, 
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-  }
-}
-
 
   void unlockNextStop() {
   if (unlockedIndex < stops.length - 1) {
@@ -114,7 +98,6 @@ with SingleTickerProviderStateMixin {
     Future.delayed(Duration(milliseconds: 1000), () {
       setState(() {
         isWhiteToPurple = !isWhiteToPurple;
-        _updateBackgroundAnimation();
 
         double startPosition = unlockedIndex / (stops.length - 1);
         double endPosition = (unlockedIndex + 1) / (stops.length - 1);
@@ -126,6 +109,10 @@ with SingleTickerProviderStateMixin {
 
         double startProgress = unlockedIndex / stops.length;
         double endProgress = (unlockedIndex + 1) / stops.length;
+
+         if (unlockedIndex + 1 == stops.length ) {
+          endProgress = 1.0;
+        }
         _animation = Tween<double>(begin: startProgress, end: endProgress)
             .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
       });
@@ -136,6 +123,12 @@ with SingleTickerProviderStateMixin {
           stops[unlockedIndex + 1]['icon'] =
               financeIcons[unlockedIndex % financeIcons.length];
           unlockedIndex++;
+
+          if (unlockedIndex == stops.length - 1) {
+            _animation = Tween<double>(begin: 1.0, end: 1.0).animate(
+              CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+            );
+          }
         });
       });
     });
@@ -159,9 +152,7 @@ void _scrollToUnlockedLevel(int index) {
   );
 }
 
-
-
-  void _showLevelDialog(String title, IconData icon, String info) {
+void _showLevelDialog(String title, IconData icon, String info) {
   showDialog(
     context: context,
     builder: (context) => AnimatedDialog(
@@ -174,9 +165,31 @@ void _scrollToUnlockedLevel(int index) {
             // Background Image
             Image.asset(
               'assets/images/learning_road/level_info_container.png',
-              width: MediaQuery.of(context).size.width * 0.95, 
+              width: MediaQuery.of(context).size.width * 0.95,
               fit: BoxFit.contain,
             ),
+
+            // Close Button (X)
+            Positioned(
+              top: 20, // Position it at the top of the image
+              right: 20, // Position it near the top-right corner
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: klooigeldBlauw, // Semi-transparent background
+                    shape: BoxShape.circle,
+                  ),
+                  padding: EdgeInsets.all(8),
+                  child: Icon(
+                    Icons.close, // The "X" icon
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+
             // Content Overlay
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 40.0),
@@ -233,6 +246,7 @@ void _scrollToUnlockedLevel(int index) {
 }
 
 
+
   void _showLockedMessage() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -253,19 +267,13 @@ Widget build(BuildContext context) {
   return Scaffold(
     body: Stack(
       children: [
-        // Gradient Background
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.white,
-                _backgroundAnimation.value ?? klooigeldPaars!,
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/learning_road/background_learning_road.png',
+            fit: BoxFit.cover,
           ),
         ),
+        // Gradient Background
 
         Column(
           children: [
@@ -282,22 +290,9 @@ Widget build(BuildContext context) {
             Expanded(
               child: Stack(
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.white,
-                          _backgroundAnimation.value ?? klooigeldPaars!,
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      double bottomMargin = constraints.maxHeight * 0.3;
+                      double bottomMargin = constraints.maxHeight * 0.8;
                       double totalHeight =
                           constraints.maxHeight * 2 + bottomMargin;
                       Size size = Size(constraints.maxWidth, totalHeight);
