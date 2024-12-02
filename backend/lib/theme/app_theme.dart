@@ -8,6 +8,7 @@ class AppTheme {
   static const Color nearlyWhite = Color(0xFFFEFEFE);
   static const Color white = Color(0xFFFFFFFF);
   static const Color nearlyBlack = Color.fromRGBO(10, 10, 10, 1);
+  static const Color nearlyBlack2 = Color.fromRGBO(16, 16, 15, 1);
   static const Color grey = Color(0xFF2A2A2A);
   // ignore: constant_identifier_names
   static const Color dark_grey = Color(0xFF1A1A1A);
@@ -34,6 +35,7 @@ class AppTheme {
   static const String logoFont1 = 'PurpleMagic'; // Logo font 1
   static const String logoFont2 = 'PurpleMagicSVG'; // Logo font 2
   static const String titleFont = 'NeighborBlack'; // Title font
+  static const String neighbor = 'Neighbor'; // Title font
 
   static const TextTheme textTheme = TextTheme(
     headlineMedium: display1,

@@ -15,6 +15,8 @@ dependencies:
   animations: ^2.0.11
   image_picker: ^1.1.2
   image_cropper: ^8.0.2
+  font_awesome_flutter: ^10.8.0
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
@@ -28,6 +30,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/introduction_screen/
+    - assets/images/icons/
     - assets/json/
     - assets/fonts/
 
@@ -51,6 +54,50 @@ flutter:
     - family: NeighborBlack
       fonts:
         - asset: assets/fonts/Neighbor_Black.otf
+
+    # TITLE FONT 2
+    - family: Neighbor
+      fonts:
+        - asset: assets/fonts/Neighbor/Neighbor Black.ttf
+          weight: 900
+        - asset: assets/fonts/Neighbor/Neighbor Black Italic.ttf
+          weight: 900
+          style: italic
+        - asset: assets/fonts/Neighbor/Neighbor Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Neighbor/Neighbor Bold Italic.ttf
+          weight: 700
+          style: italic
+        - asset: assets/fonts/Neighbor/Neighbor Extrabold.ttf
+          weight: 800
+        - asset: assets/fonts/Neighbor/Neighbor Extrabold Italic.ttf
+          weight: 800
+          style: italic
+        - asset: assets/fonts/Neighbor/Neighbor Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Neighbor/Neighbor Medium Italic.ttf
+          weight: 500
+          style: italic
+        - asset: assets/fonts/Neighbor/Neighbor Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Neighbor/Neighbor Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/Neighbor/Neighbor Light.ttf
+          weight: 300
+        - asset: assets/fonts/Neighbor/Neighbor Light Italic.ttf
+          weight: 300
+          style: italic
+        - asset: assets/fonts/Neighbor/Neighbor Extralight.ttf
+          weight: 200
+        - asset: assets/fonts/Neighbor/Neighbor Extralight Italic.ttf
+          weight: 200
+          style: italic
+        - asset: assets/fonts/Neighbor/Neighbor Thin.ttf
+          weight: 100
+        - asset: assets/fonts/Neighbor/Neighbor Thin Italic.ttf
+          weight: 100
+          style: italic
 
     # NORMAL TEXT FONT
     - family: Poppins
