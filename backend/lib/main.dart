@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Import screens
-import 'screens/(home)/home_screen.dart';
+//import 'screens/(home)/home_screen.dart';
 // import 'screens/(introduction)/introduction_screen.dart';
+import 'screens/(rewards)/reward_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,7 +41,7 @@ class SleepApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       // For now, always show HomeScreen (commenting out introduction screen logic)
-      home: const HomeScreen(),
+      home: const RewardsShopScreen(),
       // Uncomment this to enable introduction screen logic
       // home: hasSeenIntroduction
       //     ? const HomeScreen()
