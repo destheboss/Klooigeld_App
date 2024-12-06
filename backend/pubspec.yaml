@@ -17,6 +17,7 @@ dependencies:
   image_cropper: ^8.0.2
   font_awesome_flutter: ^10.8.0
   path_provider: ^2.1.5
+  dash: ^1.0.5
 
 dev_dependencies:
   flutter_test:
@@ -31,9 +32,13 @@ flutter:
     - assets/images/
     - assets/images/rewards/
     - assets/images/introduction_screen/
+    - assets/images/learning_road/
     - assets/images/icons/
+    - assets/symbols/
     - assets/json/
     - assets/fonts/
+    
+
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
