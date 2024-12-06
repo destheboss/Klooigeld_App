@@ -5,6 +5,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../components/custom_card.dart';
 import '../../components/transaction_tile.dart';
 import '../../theme/app_theme.dart';
+import '../../screens/(learning_road)/learning-road_screen.dart';
+import '../../screens/(rewards)/reward_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -307,7 +309,10 @@ class HomeScreenState extends State<HomeScreen> {
                                 backgroundColor: AppTheme.klooigeldBlauw,
                                 shadowColor: Colors.black26,
                                 onTap: () {
-                                  // TODO: Handle KLOOI GAMES card tap
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => LearningRoadScreen()),
+                                  );
                                 },
                                 padding: const EdgeInsets.all(16.0),
                                 child: Column(
@@ -341,7 +346,10 @@ class HomeScreenState extends State<HomeScreen> {
                                 backgroundColor: AppTheme.klooigeldGroen,
                                 shadowColor: Colors.black26,
                                 onTap: () {
-                                  // TODO: Handle KLOOI SHOP card tap
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => RewardsShopScreen()),
+                                  );
                                 },
                                 padding: const EdgeInsets.all(16.0),
                                 child: Column(
