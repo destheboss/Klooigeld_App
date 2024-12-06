@@ -2,11 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../../components/custom_card.dart';
-import '../../components/transaction_tile.dart';
+import '../../components/widgets/home/custom_card.dart';
+import '../../components/widgets/home/transaction_tile.dart';
 import '../../theme/app_theme.dart';
 import '../../screens/(learning_road)/learning-road_screen.dart';
-import '../../screens/(rewards)/reward_screen.dart';
+import '../../screens/(rewards)/rewards_shop_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -101,14 +101,24 @@ class HomeScreenState extends State<HomeScreen> {
                         FutureBuilder<String?>(
                           future: _getAvatarImagePath(),
                           builder: (context, snapshot) {
+                            String avatarPath;
+
                             if (snapshot.hasData &&
                                 snapshot.data != null &&
                                 File(snapshot.data!).existsSync()) {
+                              // Use the user's uploaded avatar if it exists
+                              avatarPath = snapshot.data!;
                               return CircleAvatar(
-                                backgroundImage: FileImage(File(snapshot.data!)),
+                                radius: 20,
+                                backgroundImage: FileImage(File(avatarPath)),
                               );
                             } else {
-                              return Container();
+                              // Use default avatar image
+                              avatarPath = 'assets/images/default_user.png';
+                              return CircleAvatar(
+                                radius: 20,
+                                backgroundImage: AssetImage(avatarPath),
+                              );
                             }
                           },
                         ),
@@ -172,20 +182,17 @@ class HomeScreenState extends State<HomeScreen> {
                                     '1.024',
                                     style: TextStyle(
                                       fontFamily: AppTheme.neighbor,
-                                      fontSize: 24,
+                                      fontSize: 26,
                                       color: AppTheme.white,
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
+                                  const SizedBox(width: 8),
                                   Transform.translate(
-                                    offset: Offset(0, 3),
-                                    child: Text(
-                                      'K',
-                                      style: TextStyle(
-                                        fontFamily: AppTheme.logoFont1,
-                                        fontSize: 28,
-                                        color: AppTheme.white,
-                                      ),
+                                    offset: const Offset(0, 0.6),
+                                    child: Image.asset(
+                                      'assets/images/currency_white.png',
+                                      width: 20, // Adjust size as needed
+                                      height: 20, // Adjust size as needed
                                     ),
                                   ),
                                 ],
@@ -193,7 +200,9 @@ class HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
+
                         const SizedBox(height: 18),
+                        // Card 2: Daily Tasks
                         CustomCard(
                           backgroundColor: AppTheme.klooigeldRoze,
                           shadowColor: Colors.black26,
@@ -430,17 +439,17 @@ class HomeScreenState extends State<HomeScreen> {
                             final transactions = [
                               TransactionTile(
                                 description: 'SHOES',
-                                amount: '-110 K',
+                                amount: '-110',
                                 date: 'March 27',
                               ),
                               TransactionTile(
                                 description: 'COFFEE',
-                                amount: '-5 K',
+                                amount: '-5',
                                 date: 'March 26',
                               ),
                               TransactionTile(
                                 description: 'SALARY',
-                                amount: '+2.000 K',
+                                amount: '+2.000',
                                 date: 'March 25',
                               ),
                             ];

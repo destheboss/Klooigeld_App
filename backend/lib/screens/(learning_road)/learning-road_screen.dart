@@ -25,8 +25,8 @@ with SingleTickerProviderStateMixin {
   ];
  
   static const Color klooigeldRoze = Color(0xFFF787D9); // New: Accent style 1 / Card style 1
-  static const Color klooigeldGroen = Color(0xFFB2DF1F); // New: Background 1 / Accent style 2 / Card style 2
-  static const Color klooigeldDarkGroen = Color(0xFF7D9D16);
+  // static const Color klooigeldGroen = Color(0xFFB2DF1F); // New: Background 1 / Accent style 2 / Card style 2
+  // static const Color klooigeldDarkGroen = Color(0xFF7D9D16);
   static const Color klooigeldPaars = Color(0xFFC8BBF3); // New: Accent style 2 / Card style 3
   static const Color klooigeldBlauw = Color(0xFF1D1999); // New: Button & pop-up background / Button text
 

@@ -34,6 +34,7 @@ flutter:
     - assets/images/introduction_screen/
     - assets/images/learning_road/
     - assets/images/icons/
+    - assets/images/shop/
     - assets/symbols/
     - assets/json/
     - assets/fonts/

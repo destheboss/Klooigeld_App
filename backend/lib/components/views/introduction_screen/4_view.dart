@@ -230,7 +230,7 @@ class _ForthViewState extends State<ForthView> {
                                           child: const Icon(
                                             Icons.close_rounded,
                                             size: 50,
-                                            color: AppTheme.klooigeldGroen,
+                                            color: AppTheme.white,
                                           ),
                                         ),
                                       ),

@@ -10,6 +10,7 @@ class FinancialTipsLayout extends StatefulWidget {
 }
 
 class _FinancialTipsLayoutState extends State<FinancialTipsLayout> {
+  // ignore: unused_field
   int _currentIndex = 0; // Tracks which card is currently active.
   final Set<int> _clickedCards = {}; // Tracks clicked card indices.
 
