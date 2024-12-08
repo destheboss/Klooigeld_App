@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:backend/screens/(tips)/tips_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -285,7 +286,10 @@ class HomeScreenState extends State<HomeScreen> {
                           backgroundColor: AppTheme.klooigeldPaars,
                           shadowColor: Colors.black26,
                           onTap: () {
-                            // TODO: Handle tips card tap
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const TipsScreen()),
+                            );
                           },
                           padding: const EdgeInsets.all(16.0),
                           child: Row(
