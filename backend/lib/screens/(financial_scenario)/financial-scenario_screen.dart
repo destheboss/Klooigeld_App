@@ -1,3 +1,5 @@
+import 'package:backend/services/financial-scenario-service.dart';
+import 'package:backend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class FinancialScenarioLayout extends StatelessWidget {
@@ -5,151 +7,188 @@ class FinancialScenarioLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: ChatBubbleScreen(),
+      home: FinancialScenarioScreen(),
     );
   }
 }
 
-class ChatBubbleScreen extends StatefulWidget {
+class FinancialScenarioScreen extends StatefulWidget {
   @override
-  _ChatBubbleScreenState createState() => _ChatBubbleScreenState();
+  _FinancialScenarioScreenState createState() =>
+      _FinancialScenarioScreenState();
 }
 
-class _ChatBubbleScreenState extends State<ChatBubbleScreen> {
-  bool showReplyBubble = false;
+class _FinancialScenarioScreenState extends State<FinancialScenarioScreen> {
+  double money = 1000.00;
+  double progressvalue = 0.0;
+  
+  List<Widget> chatBubbles = [
+    ChatBubble(
+      text: "Hey! Do you want to go to the concert this weekend?",
+      isFromLeft: true, // Text comes from the left
+      icon: Icons.girl_rounded, // Icon for the chat
+    ),
+  ];
 
-  void toggleBubble() {
+  bool showAnswers = true; // Flag to show/hide answers
+  bool hasFollowUp = false; // Flag to ensure follow-up question is asked only once
+  bool showFollowUpAnswers = false; // Flag to show follow-up answers
+
+  void addAnswer(String answer, double cost) {
     setState(() {
-      showReplyBubble = true; // Show the reply bubble after the first is tapped.
+      money -= cost; 
+      progressvalue += 0.5;
+
+      chatBubbles.add(ChatBubble(
+        text: answer,
+        isFromLeft: false, // Text comes from the right
+        icon: Icons.person,
+      ));
+      showAnswers = false; // Hide the answers after one is selected
+
+      // Add follow-up question once after the first answer is selected
+      if (!hasFollowUp) {
+        hasFollowUp = true;
+        chatBubbles.add(ChatBubble(
+          text: "Do you want to grab a drink at the concert?",
+          isFromLeft: true,
+          icon: Icons.girl_rounded,
+        ));
+        showFollowUpAnswers = true; 
+      }
+
+      if (progressvalue >= 1.0) {
+        _showEndPopup();
+      }
     });
+  }
+
+  void addFollowUpAnswer(String answer, double cost) {
+    setState(() {
+      money -= cost; 
+      progressvalue += 0.5;
+
+      chatBubbles.add(ChatBubble(
+        text: answer,
+        isFromLeft: false,
+        icon: Icons.person, 
+      ));
+      showFollowUpAnswers = false;
+
+
+      if (progressvalue >= 1.0) {
+        _showEndPopup();
+      }
+    });
+  }
+
+  void _showEndPopup() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("End"),
+          content: Text("You have completed the scenario!"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Finance Stuff"),
-      ),
       body: Column(
         children: [
-          SizedBox(height: 20),
- Padding(
-            padding: const EdgeInsets.only(left: 20.0),  // Space from the left side
+          // Progress Bar Section
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 60.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.start, // Align the children to the start (left)
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  height: 30,
-                  width: 280,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300, // Grey color for the bar
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(15),
-                      bottomRight: Radius.circular(15),
-                      topLeft: Radius.circular(15),
-                      topRight: Radius.circular(15),
+                  width: MediaQuery.of(context).size.width * 0.6,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: LinearProgressIndicator(                  
+                      value: progressvalue, // progress
+                      backgroundColor: Colors.grey.shade300,
+                      color:AppTheme.klooigeldGroen,
+                      minHeight: 8,
                     ),
                   ),
                 ),
-                SizedBox(width: 10), // Add some spacing between the containers
-                Container(
-                  child: Text("1000.00 K"),
+                SizedBox(width: 20),
+                Text(
+                  "\$${money.toStringAsFixed(2)}", // Money text with 2 decimal points
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
           ),
+
+          // Chat Bubbles with Padding
           Expanded(
-            child: GestureDetector(
-              onTap: toggleBubble,
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // First bubble always displayed
-                    ChatBubble(
-                      text: "Hello! I love money <3.",
-                      isFromLeft: true,
-                      icon: Icons.message,
-                    ),
-                    const SizedBox(height: 20), // Space between bubbles
-                    // Second bubble conditionally displayed
-                    if (showReplyBubble)
-                      ChatBubble(
-                        text: "Hi there! Me too!!",
-                        isFromLeft: false,
-                        icon: Icons.reply,
-                      ),
-                  ],
-                ),
-              ),
+            child: ListView.builder(
+              itemCount: chatBubbles.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0), // Add padding to each chat bubble
+                  child: chatBubbles[index],
+                );
+              },
             ),
           ),
+
+          // Answer Options
+          if (showAnswers) 
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Column(
+                children: [
+                  AnswersBox(
+                    answer: "Sure, I'll go!",
+                    cost: 100.00,
+                    onTap: () => addAnswer("Sure, I'll go!", 100.00),
+                  ),
+                  SizedBox(height: 10),
+                  AnswersBox(
+                    answer: "I can't afford it.",
+                    cost: 0.00,
+                    onTap: () => addAnswer("I can't afford it.", 0.00),
+                  ),
+                ],
+              ),
+            ),
+
+          // Follow-up Answer Options
+          if (showFollowUpAnswers)
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Column(
+                children: [
+                  AnswersBox(
+                    answer: "Yes, let's do it!",
+                    cost: 50.00,
+                    onTap: () => addFollowUpAnswer("Yes, let's do it!", 50.00),
+                  ),
+                  SizedBox(height: 10),
+                  AnswersBox(
+                    answer: "No, I'm good for now.",
+                    cost: 0.00,
+                    onTap: () => addFollowUpAnswer("No, I'm good for now.", 0.00),
+                  ),
+                ],
+              ),
+            ),
         ],
-      ),
-    );
-  }
-}
-
-class ChatBubble extends StatelessWidget {
-  final String text;
-  final bool isFromLeft;
-  final IconData icon;
-
-  const ChatBubble({
-    Key? key,
-    required this.text,
-    required this.isFromLeft,
-    required this.icon,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: isFromLeft
-          ? [
-              Icon(icon, color: Colors.teal, size: 24),
-              SizedBox(width: 8),
-              Bubble(text: text, isFromLeft: isFromLeft),
-            ]
-          : [
-              Bubble(text: text, isFromLeft: isFromLeft),
-              SizedBox(width: 8),
-              Icon(icon, color: Colors.teal, size: 24),
-            ],
-    );
-  }
-}
-
-class Bubble extends StatelessWidget {
-  final String text;
-  final bool isFromLeft;
-
-  const Bubble({
-    Key? key,
-    required this.text,
-    required this.isFromLeft,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      constraints: BoxConstraints(maxWidth: 200),
-      decoration: BoxDecoration(
-        color: isFromLeft ? Colors.teal.shade100 : Colors.blue.shade100,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(isFromLeft ? 0 : 15),
-          topRight: Radius.circular(isFromLeft ? 15 : 0),
-          bottomLeft: Radius.circular(15),
-          bottomRight: Radius.circular(15),
-        ),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(color: Colors.black, fontSize: 16),
       ),
     );
   }
