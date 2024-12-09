@@ -1,3 +1,4 @@
+import 'package:backend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 class StopWidget extends StatelessWidget {
   final IconData icon;
@@ -23,7 +24,7 @@ class StopWidget extends StatelessWidget {
           curve: Curves.easeInOut,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isActive ? color : Colors.white.withOpacity(0.8),
+            color: isActive ? color : AppTheme.klooigeldBlauw.withOpacity(0.8),
             boxShadow: isCurrent
                 ? [
                     BoxShadow(
@@ -39,8 +40,8 @@ class StopWidget extends StatelessWidget {
             backgroundColor: Colors.transparent,
             child: Icon(
               icon,
-              color: isActive ? Colors.white : Colors.black.withOpacity(0.6),
-              size: 60,
+              color: isActive ? Colors.white : Colors.white.withOpacity(0.9),
+              size: 50,
             ),
           ),
         ),

@@ -2,6 +2,7 @@ import 'package:backend/screens/(learning_road)/widgets/animated_dialog.dart';
 import 'package:backend/screens/(learning_road)/widgets/progress_and_balance_display.dart';
 import 'package:backend/screens/(learning_road)/widgets/road.dart';
 import 'package:backend/screens/(learning_road)/widgets/stop-widget.dart';
+import 'package:backend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class LearningRoadScreen extends StatefulWidget {
@@ -9,77 +10,65 @@ class LearningRoadScreen extends StatefulWidget {
   State<LearningRoadScreen> createState() => _LearningRoadScreenState();
 }
 
-class _LearningRoadScreenState extends State<LearningRoadScreen> 
-with SingleTickerProviderStateMixin {
+class _LearningRoadScreenState extends State<LearningRoadScreen>
+    with SingleTickerProviderStateMixin {
   final List<Map<String, dynamic>> stops = [
-    {"id": 1, "icon": Icons.credit_card, "status": "unlocked", "title": "Level 1: Introduction to Finance", "info": "Learn about the currencies and how to convert them."},
-    {"id": 2, "icon": Icons.monetization_on, "status": "unlocked", "title": "Level 2: Budgeting Basics", "info": "What is a budget and why do I need one when shopping?"},
-    {"id": 3, "icon": Icons.lock, "status": "unlocked", "title": "Level 3: Investing for Beginners", "info": "I have money, so where do I put them?"},
-    {"id": 4, "icon": Icons.lock, "status": "unlocked", "title": "Level 4: Managing Debt", "info": "Understand how to manage loans and pay off debt effectively."},
-    {"id": 5, "icon": Icons.lock, "status": "unlocked", "title": "Level 5: Saving Strategies", "info": "Discover practical ways to save money and grow your savings."},
-    {"id": 6, "icon": Icons.lock, "status": "unlocked", "title": "Level 6: Advanced Investing", "info": "Explore stocks, bonds, and mutual funds to diversify your investments."},
-    {"id": 7, "icon": Icons.lock, "status": "unlocked", "title": "Level 7: Financial Planning", "info": "Learn how to plan for big purchases and set long-term financial goals."},
-    {"id": 8, "icon": Icons.lock, "status": "unlocked", "title": "Level 8: Understanding Taxes", "info": "Find out how taxes work and how they affect your income."},
-    { "id": 9,"icon": Icons.lock,"status": "locked","title": "Level 9: Credit Scores Explained","info": "Discover how credit scores are calculated and how to improve yours."},
-    {"id": 10,"icon": Icons.lock,"status": "locked", "title": "Level 10: Building Wealth", "info": "Learn strategies to build wealth and secure your financial future."},
-  ];
- 
-  static const Color klooigeldRoze = Color(0xFFF787D9); // New: Accent style 1 / Card style 1
-  // static const Color klooigeldGroen = Color(0xFFB2DF1F); // New: Background 1 / Accent style 2 / Card style 2
-  // static const Color klooigeldDarkGroen = Color(0xFF7D9D16);
-  static const Color klooigeldPaars = Color(0xFFC8BBF3); // New: Accent style 2 / Card style 3
-  static const Color klooigeldBlauw = Color(0xFF1D1999); // New: Button & pop-up background / Button text
+{"id": 1, "icon": Icons.credit_card, "status": "unlocked", "title": "Buy Now, Pay Later", "info": "Understand how Buy Now, Pay Later services work and their impact on personal finances."},
+{"id": 2, "icon": Icons.lock, "status": "locked", "title": "Saving", "info": "Learn the importance of saving money and explore strategies to build financial security."},
+{"id": 3, "icon": Icons.lock, "status": "locked", "title": "Gambling Basics", "info": "Explore the concept of gambling, its risks, and how to maintain responsible habits."},
+{"id": 4, "icon": Icons.lock, "status": "locked", "title": "Insurances", "info": "Understand the purpose of insurance and the basics of different insurance types."},
+{"id": 5, "icon": Icons.lock, "status": "locked", "title": "Loans", "info": "Learn how loans work, their costs, and how to borrow responsibly."},
+{"id": 6, "icon": Icons.lock, "status": "locked", "title": "Investing", "info": "Discover the fundamentals of investing and how to grow wealth over time."}
 
-  final double userBalance = 1250.50; 
-  bool isWhiteToPurple  = false;
+  ];
+
+  static const Color klooigeldRoze = Color(0xFFF787D9);
+  static const Color klooigeldPaars = Color(0xFFC8BBF3);
+  static const Color klooigeldBlauw = Color(0xFF1D1999);
+
+  final double userBalance = 1250.50;
+  bool isWhiteToPurple = false;
   int unlockedIndex = 0;
   double initialProgress = 0.0;
-  bool isLastLevelComplete = false;
-  
+
   late AnimationController _controller;
   final ScrollController _scrollController = ScrollController();
   late Animation<double> _iconPositionAnimation;
   late Animation<double> _animation;
 
   final List<Color> unlockedStopColors = [
-    Color(0xFF99cf2d), // Green
-    klooigeldRoze, // Pink
-    klooigeldBlauw, // Dark Blue
-    klooigeldPaars, // Purple
-  ];
-  final List<IconData> financeIcons = [
-    Icons.attach_money,
-    Icons.account_balance,
-    Icons.savings,
-    Icons.pie_chart,
-    Icons.trending_up,
-    Icons.credit_card,
+    klooigeldRoze,
+    klooigeldBlauw,
+    Color(0xFF99cf2d),
+    klooigeldPaars,
   ];
 
-  
+  final List<IconData> financeIcons = [
+    Icons.savings,
+    Icons.casino,
+    Icons.security,
+    Icons.account_balance,
+    Icons.trending_up,
+  ];
 
   @override
   void initState() {
     super.initState();
-
-    // Determine the last unlocked stop
     unlockedIndex = stops.lastIndexWhere((stop) => stop['status'] == 'unlocked');
-
     _controller = AnimationController(
       duration: Duration(seconds: 1),
       vsync: this,
     );
 
-      // Initialize icon animation
     _iconPositionAnimation = Tween<double>(
       begin: unlockedIndex / (stops.length - 1),
       end: unlockedIndex / (stops.length - 1),
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-    double initialProgress = (unlockedIndex  )/ stops.length ;
-      _animation = Tween<double>(begin: initialProgress, end: initialProgress).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-      );
 
+    double initialProgress = (unlockedIndex) / stops.length;
+    _animation = Tween<double>(begin: initialProgress, end: initialProgress).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
 
     _controller.value = initialProgress;
 
@@ -88,173 +77,190 @@ with SingleTickerProviderStateMixin {
     });
   }
 
-
   void unlockNextStop() {
-  if (unlockedIndex < stops.length - 1) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToUnlockedLevel(unlockedIndex + 1);
-    });
-
-    Future.delayed(Duration(milliseconds: 1000), () {
-      setState(() {
-        isWhiteToPurple = !isWhiteToPurple;
-
-        double startPosition = unlockedIndex / (stops.length - 1);
-        double endPosition = (unlockedIndex + 1) / (stops.length - 1);
-
-        _iconPositionAnimation = Tween<double>(
-          begin: startPosition,
-          end: endPosition,
-        ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-
-        double startProgress = unlockedIndex / stops.length;
-        double endProgress = (unlockedIndex + 1) / stops.length;
-
-         if (unlockedIndex + 1 == stops.length ) {
-          endProgress = 1.0;
-        }
-        _animation = Tween<double>(begin: startProgress, end: endProgress)
-            .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    if (unlockedIndex < stops.length - 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToUnlockedLevel(unlockedIndex + 1);
       });
 
-      _controller.forward(from: 0).then((_) {
+      Future.delayed(Duration(milliseconds: 1000), () {
         setState(() {
-          stops[unlockedIndex + 1]['status'] = 'unlocked';
-          stops[unlockedIndex + 1]['icon'] =
-              financeIcons[unlockedIndex % financeIcons.length];
-          unlockedIndex++;
+          isWhiteToPurple = !isWhiteToPurple;
 
-          if (unlockedIndex == stops.length - 1) {
-            _animation = Tween<double>(begin: 1.0, end: 1.0).animate(
-              CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-            );
+          double startPosition = unlockedIndex / (stops.length - 1);
+          double endPosition = (unlockedIndex + 1) / (stops.length - 1);
+
+          _iconPositionAnimation = Tween<double>(
+            begin: startPosition,
+            end: endPosition,
+          ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+          double startProgress = unlockedIndex / stops.length;
+          double endProgress = (unlockedIndex + 1) / stops.length;
+
+          if (unlockedIndex + 1 == stops.length) {
+            endProgress = 1.0;
           }
+          _animation = Tween<double>(begin: startProgress, end: endProgress)
+              .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+        });
+
+        _controller.forward(from: 0).then((_) {
+          setState(() {
+            stops[unlockedIndex + 1]['status'] = 'unlocked';
+            stops[unlockedIndex + 1]['icon'] =
+                financeIcons[unlockedIndex % financeIcons.length];
+            unlockedIndex++;
+          });
         });
       });
-    });
+    }
   }
-}
 
-void _scrollToUnlockedLevel(int index) {
-  final itemHeight = 150.0;
-  final screenHeight = MediaQuery.of(context).size.height;
+  void _scrollToUnlockedLevel(int index) {
+    final itemHeight = 150.0;
+    final screenHeight = MediaQuery.of(context).size.height;
 
-  final targetScrollPosition =
-      (itemHeight * index) - (screenHeight / 2 - itemHeight / 2);
+    final targetScrollPosition =
+        (itemHeight * index) - (screenHeight / 2 - itemHeight / 2);
 
-  _scrollController.animateTo(
-    targetScrollPosition.clamp(
-      0.0,
-      _scrollController.position.maxScrollExtent,
-    ),
-    duration: Duration(milliseconds: 700),
-    curve: Curves.easeInOut,
-  );
-}
+    _scrollController.animateTo(
+      targetScrollPosition.clamp(
+        0.0,
+        _scrollController.position.maxScrollExtent,
+      ),
+      duration: Duration(milliseconds: 700),
+      curve: Curves.easeInOut,
+    );
+  }
 
-void _showLevelDialog(String title, IconData icon, String info) {
-  showDialog(
-    context: context,
-    builder: (context) => AnimatedDialog(
-      child: Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: EdgeInsets.all(16),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Background Image
-            Image.asset(
-              'assets/images/learning_road/level_info_container.png',
-              width: MediaQuery.of(context).size.width * 0.95,
-              fit: BoxFit.contain,
-            ),
-
-            // Close Button (X)
-            Positioned(
-              top: 20, // Position it at the top of the image
-              right: 20, // Position it near the top-right corner
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: klooigeldBlauw, // Semi-transparent background
-                    shape: BoxShape.circle,
-                  ),
-                  padding: EdgeInsets.all(8),
-                  child: Icon(
-                    Icons.close, // The "X" icon
-                    color: Colors.white,
-                    size: 20,
+  void _showLevelDialog(String title, IconData icon, String info) {
+    showDialog(
+      context: context,
+      builder: (context) => AnimatedDialog(
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.all(16),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Image.asset(
+                'assets/images/learning_road/level_info_container.png',
+                width: MediaQuery.of(context).size.width * 0.95,
+                fit: BoxFit.contain,
+              ),
+              Positioned(
+                top: 20,
+                right: 20,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: klooigeldBlauw,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.close,
+                      color: AppTheme.klooigeldRoze,
+                      size: 20,
+                    ),
                   ),
                 ),
               ),
-            ),
-
-            // Content Overlay
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 40.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Icon
-                  Icon(
-                    icon,
-                    size: 50,
-                    color: Colors.white,
-                  ),
-                  SizedBox(height: 10),
-                  // Title
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 40.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 50,
+                      color: klooigeldBlauw,
                     ),
-                  ),
-                  SizedBox(height: 10),
-                  // Info
-                  Text(
-                    info,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
+                    SizedBox(height: 5),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: klooigeldBlauw,
+                        fontFamily: AppTheme.neighbor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    SizedBox(height: 5),
+                    Text(
+                      info,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: AppTheme.neighbor,
+                        fontWeight: FontWeight.w500,
+                        color: klooigeldBlauw,
+                        fontSize: 14,
+                      ),
                     ),
-                    child: Text(
-                      "Play",
-                      style: TextStyle(color: klooigeldBlauw),
+                    SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: klooigeldBlauw,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: Text(
+                        "PLAY",
+                        style: TextStyle(fontFamily: AppTheme.neighbor, color: AppTheme.klooigeldRoze),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  void _showLockedMessage() {
+  ScaffoldMessenger.of(context).removeCurrentSnackBar(); 
+  
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      duration: Duration(seconds: 2),
+      content: Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: klooigeldRoze,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: klooigeldBlauw, width: 2), 
+          ),
+          child: Text(
+            "Locked game. Finish previous to continue.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'neighbor',
+              fontWeight: FontWeight.bold,
+              color: klooigeldBlauw,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ),
+      behavior: SnackBarBehavior.floating, // Floating at the bottom
+      margin: EdgeInsets.only(
+        bottom: 20, // Space above bottom edge
+        left: 16,
+        right: 16,
       ),
     ),
   );
 }
 
-
-
-  void _showLockedMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("This level is locked. Unlock previous levels to access."),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
 
   @override
   void dispose() {
@@ -263,133 +269,133 @@ void _showLevelDialog(String title, IconData icon, String info) {
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: Stack(
-      children: [
-        Positioned.fill(
-          child: Image.asset(
-            'assets/images/learning_road/background_learning_road.png',
-            fit: BoxFit.cover,
-          ),
-        ),
-        // Gradient Background
-
-        Column(
-          children: [
-            // Top Display
-            Container(
-              color: Colors.white,
-              child: ProgressAndBalanceDisplay(
-                progress: _iconPositionAnimation.value,
-                userBalance: userBalance,
-              ),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Keep original background
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/learning_road/background_new.png',
+              fit: BoxFit.cover,
             ),
+          ),
+          Column(
+            children: [
+              // Header & Progress are now handled by ProgressAndBalanceDisplay
+              ProgressAndBalanceDisplay(
+                progress: _iconPositionAnimation.value,
+                
+                title: 'GAMES',
+                onBackPressed: () => Navigator.pop(context),
+                onMenuItemSelected: (value) {
+                  // Handle menu selection if needed
+                },
+              ),
+              
+              
+              // Learning Road
+              Expanded(
+                child: Stack(
+                  children: [
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        double bottomMargin = 0;
+                        double totalHeight =
+                            constraints.maxHeight * 2 + bottomMargin;
+                        Size size = Size(constraints.maxWidth, totalHeight);
 
-            // Learning Road
-            Expanded(
-              child: Stack(
-                children: [
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      double bottomMargin = constraints.maxHeight * 0.8;
-                      double totalHeight =
-                          constraints.maxHeight * 2 + bottomMargin;
-                      Size size = Size(constraints.maxWidth, totalHeight);
+                        RoadmapPainter roadmapPainter =
+                            RoadmapPainter(stops.length, _animation.value);
+                        roadmapPainter.calculateStopPositions(size);
+                        List<Offset> stopPositions = roadmapPainter.stopPositions;
 
-                      RoadmapPainter roadmapPainter =
-                          RoadmapPainter(stops.length, _animation.value);
-                      roadmapPainter.calculateStopPositions(size);
-                      List<Offset> stopPositions = roadmapPainter.stopPositions;
-
-                      return Stack(
-                        children: [
-                          SingleChildScrollView(
-                            controller: _scrollController,
-                            scrollDirection: Axis.vertical,
-                            child: SizedBox(
-                              width: size.width,
-                              height: size.height,
-                              child: Stack(
-                                children: [
-                                  CustomPaint(
-                                    size: size,
-                                    painter: roadmapPainter,
-                                  ),
-                                  for (int i = 0; i < stopPositions.length; i++)
-                                    Positioned(
-                                      left: stopPositions[i].dx - 30,
-                                      top: stopPositions[i].dy - 30,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          if (stops[i]['status'] == 'unlocked') {
-                                            _showLevelDialog(
-                                              stops[i]['title'],
-                                              stops[i]['icon'],
-                                              stops[i]['info'],
-                                            );
-                                          } else {
-                                            _showLockedMessage();
-                                          }
-                                        },
-                                        child: StopWidget(
-                                          icon: stops[i]['icon'],
-                                          status: stops[i]['status'],
-                                          isActive: stops[i]['status'] ==
-                                              'unlocked',
-                                          isCurrent: i == unlockedIndex,
-                                          color: stops[i]['status'] == 'unlocked'
-                                              ? unlockedStopColors[
-                                                  i % unlockedStopColors.length]
-                                              : Colors.white.withOpacity(0.8),
+                        return Stack(
+                          children: [
+                            SingleChildScrollView(
+                              controller: _scrollController,
+                              scrollDirection: Axis.vertical,
+                              child: SizedBox(
+                                width: size.width,
+                                height: size.height,
+                                child: Stack(
+                                  children: [
+                                    CustomPaint(
+                                      size: size,
+                                      painter: roadmapPainter,
+                                    ),
+                                    for (int i = 0; i < stopPositions.length; i++)
+                                      Positioned(
+                                        left: stopPositions[i].dx - 30,
+                                        top: stopPositions[i].dy - 30,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            if (stops[i]['status'] == 'unlocked') {
+                                              _showLevelDialog(
+                                                stops[i]['title'],
+                                                stops[i]['icon'],
+                                                stops[i]['info'],
+                                              );
+                                            } else {
+                                              _showLockedMessage();
+                                            }
+                                          },
+                                          child: StopWidget(
+                                            icon: stops[i]['icon'],
+                                            status: stops[i]['status'],
+                                            isActive: stops[i]['status'] == 'unlocked',
+                                            isCurrent: i == unlockedIndex,
+                                            color: stops[i]['status'] == 'unlocked'
+                                                ? unlockedStopColors[i % unlockedStopColors.length]
+                                                : Colors.white.withOpacity(0.8),
+                                          ),
                                         ),
                                       ),
+                                    Positioned(
+                                      right: 16,
+                                      bottom: 16,
+                                      child: FloatingActionButton(
+                                        backgroundColor: klooigeldBlauw,
+                                        onPressed: unlockNextStop,
+                                        child: Icon(Icons.arrow_forward),
+                                      ),
                                     ),
-                                  Positioned(
-                                    right: 16,
-                                    bottom: 16,
-                                    child: FloatingActionButton(
-                                      backgroundColor: klooigeldBlauw,
-                                      onPressed: unlockNextStop,
-                                      child: Icon(Icons.arrow_forward),
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
 
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            child: IgnorePointer(
-                              child: Container(
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.white,
-                                      Colors.white.withOpacity(0),
-                                    ],
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
+                            Positioned(
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              child: IgnorePointer(
+                                child: Container(
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.white,
+                                        Colors.white.withOpacity(0),
+                                      ],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
