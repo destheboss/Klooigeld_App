@@ -50,7 +50,7 @@ class IntroductionScreenState extends State<IntroductionScreen>
   OverlayEntry _createOverlayEntry(String message) {
     return OverlayEntry(
       builder: (context) => Positioned(
-        top: MediaQuery.of(context).padding.top + 10, // Adjust for status bar
+        top: MediaQuery.of(context).padding.top + 10,
         left: 20,
         right: 20,
         child: Material(
@@ -60,13 +60,7 @@ class IntroductionScreenState extends State<IntroductionScreen>
               _removeCurrentOverlay();
             },
             onVerticalDragEnd: (details) {
-              if (details.primaryVelocity! < 0) {
-                // Swiped up
-                _removeCurrentOverlay();
-              } else if (details.primaryVelocity! > 0) {
-                // Swiped down
-                _removeCurrentOverlay();
-              }
+              _removeCurrentOverlay();
             },
             child: Dismissible(
               key: UniqueKey(),
@@ -115,10 +109,11 @@ class IntroductionScreenState extends State<IntroductionScreen>
       if (_avatarImagePath != null && _avatarImagePath!.isNotEmpty) {
         await prefs.setString('avatarImagePath', _avatarImagePath!);
       } else {
-        // Remove the avatarImagePath if no avatar is uploaded
         await prefs.remove('avatarImagePath');
       }
       await prefs.setBool('hasSeenIntroduction', true);
+      // Set initial Klooicash as per instructions
+      await prefs.setInt('klooicash', 500);
 
       if (mounted) {
         Navigator.pushReplacement(
@@ -127,14 +122,9 @@ class IntroductionScreenState extends State<IntroductionScreen>
         );
       }
     } else {
-      // Remove existing overlay if present
       _removeCurrentOverlay();
-
-      // Create and insert the new overlay
       _currentOverlayEntry = _createOverlayEntry("Please enter your name");
       Overlay.of(context).insert(_currentOverlayEntry!);
-
-      // Optionally, remove the overlay after some time
       Future.delayed(const Duration(seconds: 3), () {
         _removeCurrentOverlay();
       });
@@ -156,7 +146,6 @@ class IntroductionScreenState extends State<IntroductionScreen>
     } else if (_animationController!.value >= 0.2) {
       _animationController?.animateTo(0.0);
     }
-    // If already at the first view, do nothing or handle accordingly
   }
 
   void _onNextClick() {
@@ -169,10 +158,8 @@ class IntroductionScreenState extends State<IntroductionScreen>
     } else if (_animationController!.value <= 0.6) {
       _animationController?.animateTo(0.8);
     } else if (_animationController!.value <= 0.8) {
-      // Possibly handle the sign-up click if on the last view
       _signUpClick();
     }
-    // If already at the last view, do nothing or handle accordingly
   }
 
   @override
@@ -182,27 +169,20 @@ class IntroductionScreenState extends State<IntroductionScreen>
       resizeToAvoidBottomInset: false,
       body: GestureDetector(
         behavior: HitTestBehavior.deferToChild,
-        onPanStart: (details) {},
         onPanEnd: (details) {
           final dx = details.velocity.pixelsPerSecond.dx;
           final dy = details.velocity.pixelsPerSecond.dy;
 
           if (dx.abs() > dy.abs()) {
-            // Horizontal swipe
             if (dx < -300) {
-              // Swipe Left
               _onNextClick();
             } else if (dx > 300) {
-              // Swipe Right
               _onBackClick();
             }
           } else {
-            // Vertical swipe
             if (dy < -300) {
-              // Swipe Up
               _onNextClick();
             } else if (dy > 300) {
-              // Swipe Down
               _onBackClick();
             }
           }

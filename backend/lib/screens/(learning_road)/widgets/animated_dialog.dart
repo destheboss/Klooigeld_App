@@ -20,7 +20,7 @@ class _AnimatedDialogState extends State<AnimatedDialog>
       duration: const Duration(milliseconds: 400),
       vsync: this,
     );
-    _controller.forward(); // Start the animation
+    _controller.forward(); 
   }
 
   @override

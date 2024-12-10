@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class ProgressLinePainter extends CustomPainter {
@@ -15,11 +14,24 @@ class ProgressLinePainter extends CustomPainter {
       ..strokeWidth = 6
       ..style = PaintingStyle.stroke;
 
+<<<<<<< Updated upstream
     Paint progressPaint = Paint()
+=======
+    final barRect = Rect.fromLTWH(
+      0,
+      (size.height - barHeight) / 2,
+      size.width,
+      barHeight,
+    );
+    final barRRect = RRect.fromRectAndRadius(barRect, Radius.circular(barRadius));
+
+    Paint borderPaint = Paint()
+>>>>>>> Stashed changes
       ..color = klooigeldBlauw
       ..strokeWidth = 6
       ..style = PaintingStyle.stroke;
 
+<<<<<<< Updated upstream
     double startX = 16.0;
     double endX = size.width - 16.0;
     double progressX = startX + (endX - startX) * progress;
@@ -31,6 +43,25 @@ class ProgressLinePainter extends CustomPainter {
     // Draw the progress line
     canvas.drawLine(Offset(startX, size.height / 2),
         Offset(progressX, size.height / 2), progressPaint);
+=======
+    Paint fillPaint = Paint()
+      ..color = klooigeldBlauw
+      ..style = PaintingStyle.fill;
+
+    canvas.drawRRect(barRRect, borderPaint);
+
+    final fillWidth = size.width * progress;
+    if (fillWidth > 0) {
+      final fillRect = Rect.fromLTWH(
+        0,
+        (size.height - barHeight) / 2,
+        fillWidth,
+        barHeight,
+      );
+      final fillRRect = RRect.fromRectAndRadius(fillRect, Radius.circular(barRadius));
+      canvas.drawRRect(fillRRect, fillPaint);
+    }
+>>>>>>> Stashed changes
   }
 
   @override

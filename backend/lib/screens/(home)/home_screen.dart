@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:backend/screens/(tips)/tips_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -8,6 +7,7 @@ import '../../components/widgets/home/transaction_tile.dart';
 import '../../theme/app_theme.dart';
 import '../../screens/(learning_road)/learning-road_screen.dart';
 import '../../screens/(rewards)/rewards_shop_screen.dart';
+import '../../screens/(tips)/tips_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,6 +18,8 @@ class HomeScreen extends StatefulWidget {
 
 class HomeScreenState extends State<HomeScreen> {
   Future<String>? _usernameFuture;
+  Future<int>? _klooicashFuture;
+
   final List<String> _subtitles = [
     'FEELING GOOD TODAY?',
     'READY TO EARN MORE?',
@@ -30,11 +32,17 @@ class HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _usernameFuture = _getUsername();
+    _klooicashFuture = _getKlooicash();
   }
 
   Future<String> _getUsername() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString('username') ?? 'User';
+  }
+
+  Future<int> _getKlooicash() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('klooicash') ?? 500;
   }
 
   Future<String?> _getAvatarImagePath() async {
@@ -43,34 +51,33 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<bool> _hasNotifications() async {
-    // placeholder logic
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getBool('hasNotifications') ?? false;
   }
-
 
   @override
   Widget build(BuildContext context) {
     _subtitles.shuffle();
     String randomSubtitle = _subtitles.first;
 
-    double percentage = 1.0; // needs to be changed, demonstration purpose only
-
-    String dailyTasksSubtitle =
-        percentage == 1.0 ? 'ALL TASKS COMPLETED!' : 'YOU HAVE MORE TO GO!';
+    double percentage = 1.0; // For demonstration only
 
     return Scaffold(
       backgroundColor: AppTheme.nearlyWhite,
       body: SafeArea(
-        child: FutureBuilder<String>(
-          future: _usernameFuture,
+        child: FutureBuilder(
+          future: Future.wait([_usernameFuture!, _klooicashFuture!]),
           builder: (context, snapshot) {
-            String username = snapshot.data?.toUpperCase() ?? 'USER';
+            if (!snapshot.hasData) {
+              return Center(child: CircularProgressIndicator());
+            }
+
+            String username = snapshot.data![0].toString().toUpperCase();
+            int klooicash = snapshot.data![1] as int;
 
             return SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    vertical: 26.0, horizontal: 26.0),
+                padding: const EdgeInsets.symmetric(vertical: 26.0, horizontal: 26.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -79,13 +86,12 @@ class HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         FutureBuilder<bool>(
-                          future: _hasNotifications(), // Method to check notification status
+                          future: _hasNotifications(),
                           builder: (context, snapshot) {
-                            String iconPath = 'assets/images/icons/email-notif.png'; // icon for demonstration
-                            // String iconPath = 'assets/images/icons/email.png'; // Default icon
-                            // if (snapshot.hasData && snapshot.data == true) {
-                            //   iconPath = 'assets/images/icons/email-notif.png'; // Notification icon
-                            // }
+                            String iconPath = 'assets/images/icons/email.png';
+                            if (snapshot.hasData && snapshot.data == true) {
+                              iconPath = 'assets/images/icons/email-notif.png';
+                            }
                             return IconButton(
                               icon: Image.asset(
                                 iconPath,
@@ -93,7 +99,7 @@ class HomeScreenState extends State<HomeScreen> {
                                 height: 40,
                               ),
                               onPressed: () {
-                                // TODO: Handle email icon action
+                                // Handle notifications
                               },
                             );
                           },
@@ -102,23 +108,15 @@ class HomeScreenState extends State<HomeScreen> {
                         FutureBuilder<String?>(
                           future: _getAvatarImagePath(),
                           builder: (context, snapshot) {
-                            String avatarPath;
-
-                            if (snapshot.hasData &&
-                                snapshot.data != null &&
-                                File(snapshot.data!).existsSync()) {
-                              // Use the user's uploaded avatar if it exists
-                              avatarPath = snapshot.data!;
+                            if (snapshot.hasData && snapshot.data != null && File(snapshot.data!).existsSync()) {
                               return CircleAvatar(
                                 radius: 20,
-                                backgroundImage: FileImage(File(avatarPath)),
+                                backgroundImage: FileImage(File(snapshot.data!)),
                               );
                             } else {
-                              // Use default avatar image
-                              avatarPath = 'assets/images/default_user.png';
                               return CircleAvatar(
                                 radius: 20,
-                                backgroundImage: AssetImage(avatarPath),
+                                backgroundImage: AssetImage('assets/images/default_user.png'),
                               );
                             }
                           },
@@ -139,7 +137,7 @@ class HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         Transform.translate(
-                          offset: Offset(0, -8), // Adjust '-5' to move it further up or down
+                          offset: Offset(0, -8),
                           child: Text(
                             randomSubtitle,
                             style: TextStyle(
@@ -157,13 +155,11 @@ class HomeScreenState extends State<HomeScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Card 1: Balance
+                        // Balance Card (now showing actual Klooicash)
                         CustomCard(
                           backgroundColor: AppTheme.klooigeldGroen,
                           shadowColor: Colors.black26,
-                          onTap: () {
-                            // TODO: Handle balance card tap
-                          },
+                          onTap: () {},
                           padding: const EdgeInsets.all(16.0),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -180,7 +176,7 @@ class HomeScreenState extends State<HomeScreen> {
                               Row(
                                 children: [
                                   Text(
-                                    '1.024',
+                                    '$klooicash',
                                     style: TextStyle(
                                       fontFamily: AppTheme.neighbor,
                                       fontSize: 26,
@@ -192,8 +188,8 @@ class HomeScreenState extends State<HomeScreen> {
                                     offset: const Offset(0, 0.6),
                                     child: Image.asset(
                                       'assets/images/currency_white.png',
-                                      width: 20, // Adjust size as needed
-                                      height: 20, // Adjust size as needed
+                                      width: 20,
+                                      height: 20,
                                     ),
                                   ),
                                 ],
@@ -203,23 +199,19 @@ class HomeScreenState extends State<HomeScreen> {
                         ),
 
                         const SizedBox(height: 18),
-                        // Card 2: Daily Tasks
+                        // Daily Tasks Card (placeholder)
                         CustomCard(
                           backgroundColor: AppTheme.klooigeldRoze,
                           shadowColor: Colors.black26,
-                          onTap: () {
-                            // TODO: Handle daily tasks card tap
-                          },
+                          onTap: () {},
                           padding: const EdgeInsets.all(16.0),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              // Circle with progress and texts
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  // Circle with progress
                                   Container(
                                     width: 60,
                                     height: 60,
@@ -233,18 +225,17 @@ class HomeScreenState extends State<HomeScreen> {
                                         style: TextStyle(
                                           fontFamily: AppTheme.neighbor,
                                           fontSize: 16,
-                                          color: AppTheme.klooigeldRoze, // Same color as card
+                                          color: AppTheme.klooigeldRoze,
                                         ),
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 16),
-                                  // Texts
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Transform.translate(
-                                        offset: Offset(0, 2), // move the text up or down
+                                        offset: Offset(0, 2),
                                         child: Text(
                                           'DAILY TASKS',
                                           style: TextStyle(
@@ -255,9 +246,9 @@ class HomeScreenState extends State<HomeScreen> {
                                         ),
                                       ),
                                       Transform.translate(
-                                        offset: Offset(0, -2), // move the text up or down
+                                        offset: Offset(0, -2),
                                         child: Text(
-                                          dailyTasksSubtitle,
+                                          percentage == 1.0 ? 'ALL TASKS COMPLETED!' : 'YOU HAVE MORE TO GO!',
                                           style: TextStyle(
                                             fontFamily: AppTheme.neighbor,
                                             fontWeight: FontWeight.w500,
@@ -270,7 +261,6 @@ class HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ],
                               ),
-                              // Icon for Daily Tasks
                               const FaIcon(
                                 FontAwesomeIcons.list,
                                 size: 28,
@@ -281,7 +271,7 @@ class HomeScreenState extends State<HomeScreen> {
                         ),
 
                         const SizedBox(height: 18),
-                        // Card 3: TIPS
+                        // Tips Card
                         CustomCard(
                           backgroundColor: AppTheme.klooigeldPaars,
                           shadowColor: Colors.black26,
@@ -314,7 +304,7 @@ class HomeScreenState extends State<HomeScreen> {
                         ),
 
                         const SizedBox(height: 18),
-                        // Cards 4 and 5: KLOOI GAMES and KLOOI SHOP
+                        // KLOOI GAMES and KLOOI SHOP
                         Row(
                           children: [
                             Expanded(
@@ -331,7 +321,7 @@ class HomeScreenState extends State<HomeScreen> {
                                 child: Column(
                                   children: [
                                     Transform.translate(
-                                      offset: const Offset(0, 2), // Move icon up by 8 pixels
+                                      offset: const Offset(0, 2),
                                       child: const FaIcon(
                                         FontAwesomeIcons.gamepad,
                                         size: 48,
@@ -391,13 +381,11 @@ class HomeScreenState extends State<HomeScreen> {
                         ),
 
                         const SizedBox(height: 18),
-                        // Card 6: ACCOUNT
+                        // ACCOUNT
                         CustomCard(
                           backgroundColor: AppTheme.klooigeldPaars,
                           shadowColor: Colors.black26,
-                          onTap: () {
-                            // TODO: Handle account card tap
-                          },
+                          onTap: () {},
                           padding: const EdgeInsets.all(16.0),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -436,10 +424,8 @@ class HomeScreenState extends State<HomeScreen> {
                           physics: const NeverScrollableScrollPhysics(),
                           shrinkWrap: true,
                           itemCount: 3,
-                          separatorBuilder: (context, index) =>
-                              const Divider(),
+                          separatorBuilder: (context, index) => const Divider(),
                           itemBuilder: (context, index) {
-                            // Sample transactions
                             final transactions = [
                               TransactionTile(
                                 description: 'SHOES',
@@ -458,7 +444,7 @@ class HomeScreenState extends State<HomeScreen> {
                               ),
                             ];
                             return transactions[index];
-                         },
+                          },
                         ),
                       ],
                     ),
