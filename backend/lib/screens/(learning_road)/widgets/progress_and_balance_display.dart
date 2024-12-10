@@ -2,14 +2,21 @@ import 'dart:ui';
 import 'package:backend/screens/(learning_road)/widgets/animated_dialog.dart';
 import 'package:backend/screens/(learning_road)/widgets/progress_line_indicator.dart';
 import 'package:flutter/material.dart';
+import 'package:backend/theme/app_theme.dart'; // Ensure this is accessible
+import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // For the icons in the popup menu
+
 class ProgressAndBalanceDisplay extends StatefulWidget {
   final double progress;
-  final double userBalance;
+  final VoidCallback onBackPressed;      // Add a callback for the back button
+  final Function(int)? onMenuItemSelected; // Add a callback for the popup menu actions
+  final String title; // To allow a customizable title
 
   const ProgressAndBalanceDisplay({
     Key? key,
     required this.progress,
-    required this.userBalance,
+    required this.onBackPressed,
+    required this.title,
+    this.onMenuItemSelected,
   }) : super(key: key);
 
   @override
@@ -19,23 +26,7 @@ class ProgressAndBalanceDisplay extends StatefulWidget {
 
 class _ProgressAndBalanceDisplayState extends State<ProgressAndBalanceDisplay>
     with SingleTickerProviderStateMixin {
-  double _scale = 1.0;
-    static const Color klooigeldBlauw = Color(0xFF1D1999); // New: Button & pop-up background / Button text
-  
-
-  void _onTap() {
-    setState(() {
-      _scale = 1.1;
-    });
-
-    Future.delayed(Duration(milliseconds: 200), () {
-      setState(() {
-        _scale = 1.0;
-      });
-    });
-
-    _showCurrencyExplanationDialog();
-  }
+  static const Color klooigeldBlauw = Color(0xFF1D1999);
 
   void _showCurrencyExplanationDialog() {
     showDialog(
@@ -57,7 +48,7 @@ class _ProgressAndBalanceDisplayState extends State<ProgressAndBalanceDisplay>
                 top: 110,
                 right: 20,
                 child: GestureDetector(
-                  onTap: () => Navigator.pop(context), 
+                  onTap: () => Navigator.pop(context),
                   child: Container(
                     decoration: BoxDecoration(
                       color: klooigeldBlauw,
@@ -79,100 +70,190 @@ class _ProgressAndBalanceDisplayState extends State<ProgressAndBalanceDisplay>
     );
   }
 
-
-
- @override
+  @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.topCenter,
-      children: [
-        // Background Image
-        Image.asset(
-          'assets/images/learning_road/top_bar2.png',
-          width: MediaQuery.of(context).size.width,
-          fit: BoxFit.cover,
-        ),
-        // Foreground Content
-        Positioned(
-          top: 75,
-          left: 16,
-          right: 16,
-          child: Row(
-            children: [
-              // Progress Line
-              Expanded(
-                flex: 3,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Stack(
-                    alignment: Alignment.center,
+    return Container(
+      color: Colors.white,
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          // Background Image behind both header and progress
+          Image.asset(
+            'assets/images/learning_road/top_bar2.png',
+            width: MediaQuery.of(context).size.width,
+            height: 260,
+            fit: BoxFit.cover,
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 26),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+                  // Header Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      CustomPaint(
-                        painter: ProgressLinePainter(progress: widget.progress),
-                        child: Container(height: 60), // Adjust height to fit the image
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: widget.onBackPressed,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppTheme.klooigeldBlauw,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.klooigeldBlauw, width: 2),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color.fromARGB(52, 0, 0, 0),
+                                offset: Offset(3, 0),
+                                spreadRadius: 1,
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.chevron_left_rounded,
+                            size: 30,
+                            color: AppTheme.klooigeldRoze,
+                          ),
+                        ),
                       ),
-                      Positioned.fill(
-                        top: 0,
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            return Align(
-                              alignment: Alignment(
-                                -1.0 + (widget.progress * 2.0),
-                                -1,
-                              ),
-                              child: Icon(
-                                Icons.directions_walk,
-                                size: 30, // Adjust size to fit better
-                                color: klooigeldBlauw,
-                              ),
-                            );
-                          },
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          fontFamily: AppTheme.titleFont,
+                          fontSize: 56,
+                          color: AppTheme.klooigeldBlauw,
+                        ),
+                      ),
+                      PopupMenuButton<int>(
+                        onSelected: (value) {
+                          if (widget.onMenuItemSelected != null) {
+                            widget.onMenuItemSelected!(value);
+                          }
+                        },
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: const BorderSide(color: AppTheme.klooigeldBlauw, width: 2),
+                        ),
+                        color: AppTheme.white,
+                        elevation: 4,
+                        itemBuilder: (context) => [
+                          PopupMenuItem<int>(
+                            value: 1,
+                            child: Row(
+                              children: [
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Settings',
+                                  style: TextStyle(
+                                    fontFamily: AppTheme.neighbor,
+                                    fontSize: 14,
+                                    color: AppTheme.klooigeldBlauw,
+                                  ),
+                                ),
+                                const Spacer(),
+                                const FaIcon(FontAwesomeIcons.gear, size: 16, color: AppTheme.klooigeldBlauw),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<int>(
+                            value: 2,
+                            child: Row(
+                              children: [
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Filters',
+                                  style: TextStyle(
+                                    fontFamily: AppTheme.neighbor,
+                                    fontSize: 14,
+                                    color: AppTheme.klooigeldBlauw,
+                                  ),
+                                ),
+                                const Spacer(),
+                                const FaIcon(FontAwesomeIcons.filter, size: 16, color: AppTheme.klooigeldBlauw),
+                              ],
+                            ),
+                          ),
+                        ],
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: AppTheme.klooigeldBlauw,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppTheme.klooigeldBlauw, width: 2),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color.fromARGB(52, 0, 0, 0),
+                                  offset: Offset(-3, 0),
+                                  spreadRadius: 1,
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.more_vert,
+                              color: AppTheme.klooigeldRoze,
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-              SizedBox(width: 16),
-              // Klooigeld Display
-              GestureDetector(
-                onTap: _onTap,
-                child: AnimatedScale(
-                  scale: _scale,
-                  duration: Duration(milliseconds: 200),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                    decoration: BoxDecoration(
-                      color: Colors.transparent, // Make transparent to blend with the background
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: Row(
-                      children: [
-                        Image.asset(
-                        'assets/symbols/klooigeld_symbol_white.png',
-                        width: 25,
-                        height: 25,
-                        fit: BoxFit.contain,
-                      ),
-                       // Icon(Icons.monetization_on, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          widget.userBalance.toStringAsFixed(2),
-                          style: TextStyle(
-                            color: Colors.white, // White text to match the image
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+
+                  const SizedBox(height: 2),
+
+                  // Only the progress bar, no currency
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CustomPaint(
+                                painter: ProgressLinePainter(progress: widget.progress),
+                                child: Container(height: 60),
+                              ),
+                              // Move the human slightly up by adjusting the alignment's Y value
+                              Positioned.fill(
+                                top: 0,
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    return Align(
+                                      alignment: Alignment(
+                                        -1.0 + (widget.progress * 2.0),
+                                        -1.6, // Adjusted from -1 to -1.2 to move upward
+                                      ),
+                                      child: Icon(
+                                        Icons.directions_walk,
+                                        size: 30,
+                                        color: klooigeldBlauw,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

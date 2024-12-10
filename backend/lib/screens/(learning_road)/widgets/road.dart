@@ -2,6 +2,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
+
 class RoadmapPainter extends CustomPainter {
   static const Color klooigeldDarkGroen = Color(0xFFB2DF1F);
   static const Color white = Colors.white;
@@ -40,15 +41,16 @@ class RoadmapPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     calculateStopPositions(size);
+    canvas.translate(0, size.height * 0.02); // Moves everything 10% of the height down
 
     Paint whitePaint = Paint()
       ..color = white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 20;
+      ..strokeWidth = 30;
 
     Paint greenPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 20;
+      ..strokeWidth = 30;
 
     Paint shadowPaint = Paint()
       ..color = Colors.black.withOpacity(0.2)
@@ -57,7 +59,7 @@ class RoadmapPainter extends CustomPainter {
 
     Path path = Path();
 
-    double lineLength = size.width * 0.4;
+    double lineLength = size.width * 0.3;
     double circleRadius = size.width * 0.20;
     double startX = circleRadius + (size.width - lineLength - circleRadius * 2) / 2;
     double verticalMargin = size.height * 0.05;
