@@ -1,6 +1,5 @@
 import 'package:backend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
-
 class StopWidget extends StatelessWidget {
   final IconData icon;
   final String status;
@@ -20,7 +19,6 @@ class StopWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: isActive ? "Unlocked Stop" : "Locked Stop",        
-<<<<<<< Updated upstream
         child: AnimatedContainer(
           duration: Duration(milliseconds: 300),
           curve: Curves.easeInOut,
@@ -45,34 +43,9 @@ class StopWidget extends StatelessWidget {
               color: isActive ? Colors.white : Colors.white.withOpacity(0.9),
               size: 50,
             ),
-=======
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isActive ? color : AppTheme.klooigeldBlauw.withOpacity(0.8),
-          boxShadow: isCurrent
-              ? [
-                  BoxShadow(
-                    color: color.withOpacity(0.5),
-                    blurRadius: 15,
-                    spreadRadius: 8,
-                  ),
-                ]
-              : [],
-        ),
-        child: CircleAvatar(
-          radius: 50,
-          backgroundColor: Colors.transparent,
-          child: Icon(
-            icon,
-            color: isActive ? Colors.white : Colors.white.withOpacity(0.9),
-            size: 50,
->>>>>>> Stashed changes
           ),
         ),
-      ),
+      
     );
   }
 }
