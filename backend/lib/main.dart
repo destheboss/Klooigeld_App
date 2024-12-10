@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,11 +13,31 @@ void main() async {
   // App runs only in portrait mode.
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
+  // Precache all images before the app starts.
+  await precacheAssets();
+
   // Retrieve shared preferences instance and check introduction screen status.
   SharedPreferences prefs = await SharedPreferences.getInstance();
   bool hasSeenIntroduction = prefs.getBool('hasSeenIntroduction') ?? false;
 
   runApp(SleepApp(hasSeenIntroduction: hasSeenIntroduction));
+}
+
+Future<void> precacheAssets() async {
+  final String jsonString = await rootBundle.loadString('assets/json/image_list.json');
+  final data = json.decode(jsonString);
+  final List<String> imagePaths = List<String>.from(data['images']);
+
+  final Widget tempWidget = MaterialApp(
+    builder: (context, child) {
+      for (String path in imagePaths) {
+        precacheImage(AssetImage(path), context);
+      }
+      return const SizedBox();
+    },
+  );
+
+  runApp(tempWidget);
 }
 
 class SleepApp extends StatelessWidget {
@@ -39,9 +60,6 @@ class SleepApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      // For now, always show HomeScreen (commenting out introduction screen logic)
-      // home: const HomeScreen(),
-      // Uncomment this to enable introduction screen logic
       home: hasSeenIntroduction
           ? const HomeScreen()
           : const IntroductionScreen(),
