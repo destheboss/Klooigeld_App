@@ -88,10 +88,11 @@ class HomeScreenState extends State<HomeScreen> {
                         FutureBuilder<bool>(
                           future: _hasNotifications(),
                           builder: (context, snapshot) {
-                            String iconPath = 'assets/images/icons/email.png';
-                            if (snapshot.hasData && snapshot.data == true) {
-                              iconPath = 'assets/images/icons/email-notif.png';
-                            }
+                            String iconPath = 'assets/images/icons/email-notif.png'; // icon for demonstration
+                            // String iconPath = 'assets/images/icons/email.png'; // Default icon
+                            // if (snapshot.hasData && snapshot.data == true) {
+                            //   iconPath = 'assets/images/icons/email-notif.png'; // Notification icon
+                            // }
                             return IconButton(
                               icon: Image.asset(
                                 iconPath,
