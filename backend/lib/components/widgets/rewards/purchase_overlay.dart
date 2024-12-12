@@ -37,18 +37,16 @@ class _PurchaseOverlayState extends State<PurchaseOverlay> {
     return WillPopScope(
       onWillPop: () async {
         widget.onCancel();
-        return false; // Prevent navigating back to the previous screen
+        return false;
       },
       child: Stack(
         children: [
-          // Background that closes on tap
           GestureDetector(
             onTap: widget.onCancel,
             child: Container(
               color: Colors.black54,
             ),
           ),
-          // Foreground card
           Center(
             child: GestureDetector(
               onTap: () {},
@@ -69,7 +67,6 @@ class _PurchaseOverlayState extends State<PurchaseOverlay> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Image with paars background
                     Container(
                       height: 150,
                       decoration: const BoxDecoration(
@@ -91,20 +88,17 @@ class _PurchaseOverlayState extends State<PurchaseOverlay> {
                     Text(
                       widget.itemName,
                       style: TextStyle(
-                        fontFamily: AppTheme.titleFont, // Title font for item name
+                        fontFamily: AppTheme.titleFont,
                         fontSize: 24,
                         color: AppTheme.nearlyBlack2,
                       ),
                     ),
                     const SizedBox(height: 8),
-
-                    // Colors row with selectable colors
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(widget.colors.length, (i) {
                         final isSelected = i == selectedColorIndex;
                         final color = widget.colors[i];
-                        // Determine border based on color and selection
                         Border? dotBorder;
                         if (isSelected) {
                           dotBorder = Border.all(
@@ -141,10 +135,7 @@ class _PurchaseOverlayState extends State<PurchaseOverlay> {
                         );
                       }),
                     ),
-
                     const SizedBox(height: 16),
-
-                    // Price with image for currency
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -161,16 +152,13 @@ class _PurchaseOverlayState extends State<PurchaseOverlay> {
                           offset: const Offset(0, 0.3),
                           child: Image.asset(
                             'assets/images/currency.png',
-                            width: 14, // Adjust size as needed
-                            height: 14, // Adjust size as needed
+                            width: 14,
+                            height: 14,
                           ),
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 24),
-
-                    // Buttons row with equal width
                     Row(
                       children: [
                         Expanded(

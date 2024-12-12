@@ -94,22 +94,21 @@ class ItemService {
         categoryId: 1,
         colors: [Colors.white, Colors.black],
       ),
-      // New Quests items
       ShopItem(
         id: 201,
         name: 'Bouquet of Roses',
         imagePath: 'assets/images/shop/flower1.png',
-        price: 500,
+        price: 10,
         categoryId: 4,
         colors: [Colors.red, Colors.blue],
       ),
       ShopItem(
         id: 202,
-        name: 'Acqua di Perfume',
-        imagePath: 'assets/images/shop/perfume1.png',
-        price: 300,
+        name: 'Chocolate',
+        imagePath: 'assets/images/shop/chocolate1.png',
+        price: 5,
         categoryId: 4,
-        colors: [Colors.black, Colors.white],
+        colors: [Colors.transparent],
       ),
     ];
   }

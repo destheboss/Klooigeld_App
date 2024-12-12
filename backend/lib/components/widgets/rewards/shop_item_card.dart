@@ -37,7 +37,6 @@ class ShopItemCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // Item Image with paars background
             Expanded(
               child: Container(
                 decoration: const BoxDecoration(
@@ -45,20 +44,18 @@ class ShopItemCard extends StatelessWidget {
                   borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(2.0), // Add padding for the image
+                  padding: const EdgeInsets.all(2.0),
                   child: ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                     child: Image.asset(
                       imagePath,
-                      fit: BoxFit.contain, // Ensures the image is fully visible
+                      fit: BoxFit.contain,
                       width: double.infinity,
                     ),
                   ),
                 ),
               ),
             ),
-
-            // Item Details
             Padding(
               padding: const EdgeInsets.all(8),
               child: Column(
@@ -83,7 +80,6 @@ class ShopItemCard extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: c,
                                 shape: BoxShape.circle,
-                                // If item color is white, add a thin black border to be visible
                                 border: c == Colors.white
                                     ? Border.all(color: Colors.black, width: 1)
                                     : null,
@@ -107,8 +103,8 @@ class ShopItemCard extends StatelessWidget {
                         offset: const Offset(0, 0.2),
                         child: Image.asset(
                           'assets/images/currency.png',
-                          width: 10, // Adjust size as needed
-                          height: 10, // Adjust size as needed
+                          width: 10,
+                          height: 10,
                         ),
                       ),
                     ],

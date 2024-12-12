@@ -4,6 +4,8 @@ import 'package:backend/screens/(learning_road)/widgets/road.dart';
 import 'package:backend/screens/(learning_road)/widgets/stop-widget.dart';
 import 'package:backend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:backend/features/scenarios/buy_now_pay_later_scenario_screen.dart';
 
 class LearningRoadScreen extends StatefulWidget {
   @override
@@ -12,15 +14,56 @@ class LearningRoadScreen extends StatefulWidget {
 
 class _LearningRoadScreenState extends State<LearningRoadScreen>
     with SingleTickerProviderStateMixin {
-  final List<Map<String, dynamic>> stops = [
-{"id": 1, "icon": Icons.credit_card, "status": "unlocked", "title": "Buy Now, Pay Later", "info": "Understand how Buy Now, Pay Later services work and their impact on personal finances."},
-{"id": 2, "icon": Icons.lock, "status": "locked", "title": "Saving", "info": "Learn the importance of saving money and explore strategies to build financial security."},
-{"id": 3, "icon": Icons.lock, "status": "locked", "title": "Gambling Basics", "info": "Explore the concept of gambling, its risks, and how to maintain responsible habits."},
-{"id": 4, "icon": Icons.lock, "status": "locked", "title": "Insurances", "info": "Understand the purpose of insurance and the basics of different insurance types."},
-{"id": 5, "icon": Icons.lock, "status": "locked", "title": "Loans", "info": "Learn how loans work, their costs, and how to borrow responsibly."},
-{"id": 6, "icon": Icons.lock, "status": "locked", "title": "Investing", "info": "Discover the fundamentals of investing and how to grow wealth over time."}
+  late SharedPreferences _prefs;
+  bool _isLoading = true;
 
+  List<Map<String, dynamic>> stops = [
+    {
+      "id": 1,
+      "icon": Icons.credit_card,
+      "status": "locked",
+      "title": "Buy Now, Pay Later",
+      "info": "Today's choices impact your finances. Test how you handle payment delays"
+    },
+    {
+      "id": 2,
+      "icon": Icons.lock,
+      "status": "locked",
+      "title": "Saving",
+      "info": "Learn the importance of saving money and explore strategies to build financial security."
+    },
+    {
+      "id": 3,
+      "icon": Icons.lock,
+      "status": "locked",
+      "title": "Gambling Basics",
+      "info": "Explore the concept of gambling, its risks, and how to maintain responsible habits."
+    },
+    {
+      "id": 4,
+      "icon": Icons.lock,
+      "status": "locked",
+      "title": "Insurances",
+      "info": "Understand the purpose of insurance and the basics of different insurance types."
+    },
+    {
+      "id": 5,
+      "icon": Icons.lock,
+      "status": "locked",
+      "title": "Loans",
+      "info": "Learn how loans work, their costs, and how to borrow responsibly."
+    },
+    {
+      "id": 6,
+      "icon": Icons.lock,
+      "status": "locked",
+      "title": "Investing",
+      "info": "Discover the fundamentals of investing and how to grow wealth over time."
+    },
   ];
+
+  int unlockedIndex = 0;
+  double initialProgress = 0.0;
 
   static const Color klooigeldRoze = Color(0xFFF787D9);
   static const Color klooigeldPaars = Color(0xFFC8BBF3);
@@ -28,8 +71,6 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
 
   final double userBalance = 1250.50;
   bool isWhiteToPurple = false;
-  int unlockedIndex = 0;
-  double initialProgress = 0.0;
 
   late AnimationController _controller;
   final ScrollController _scrollController = ScrollController();
@@ -54,27 +95,50 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
   @override
   void initState() {
     super.initState();
-    unlockedIndex = stops.lastIndexWhere((stop) => stop['status'] == 'unlocked');
+    _loadProgress();
     _controller = AnimationController(
       duration: Duration(seconds: 1),
       vsync: this,
     );
 
+    _controller.addListener(() {
+      setState(() {});
+    });
+  }
+
+  Future<void> _loadProgress() async {
+    _prefs = await SharedPreferences.getInstance();
+    unlockedIndex = _prefs.getInt('unlockedLevelIndex') ?? 0;
+
+    if (unlockedIndex < 0 || unlockedIndex >= stops.length) {
+      unlockedIndex = 0;
+    }
+
+    for (int i = 0; i <= unlockedIndex && i < stops.length; i++) {
+      stops[i]['status'] = 'unlocked';
+      stops[i]['icon'] =
+          i == 0 ? Icons.credit_card : financeIcons[(i - 1) % financeIcons.length];
+    }
+
+    double initialValue = (unlockedIndex) / stops.length;
+    initialProgress = initialValue;
     _iconPositionAnimation = Tween<double>(
       begin: unlockedIndex / (stops.length - 1),
       end: unlockedIndex / (stops.length - 1),
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
-    double initialProgress = (unlockedIndex) / stops.length;
-    _animation = Tween<double>(begin: initialProgress, end: initialProgress).animate(
+    _animation = Tween<double>(begin: initialValue, end: initialValue).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
-    _controller.value = initialProgress;
-
-    _controller.addListener(() {
-      setState(() {});
+    setState(() {
+      _controller.value = initialValue;
+      _isLoading = false;
     });
+  }
+
+  void _saveProgress() {
+    _prefs.setInt('unlockedLevelIndex', unlockedIndex);
   }
 
   void unlockNextStop() {
@@ -107,10 +171,11 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
 
         _controller.forward(from: 0).then((_) {
           setState(() {
-            stops[unlockedIndex + 1]['status'] = 'unlocked';
-            stops[unlockedIndex + 1]['icon'] =
-                financeIcons[unlockedIndex % financeIcons.length];
             unlockedIndex++;
+            stops[unlockedIndex]['status'] = 'unlocked';
+            stops[unlockedIndex]['icon'] =
+                financeIcons[(unlockedIndex - 1) % financeIcons.length];
+            _saveProgress();
           });
         });
       });
@@ -134,146 +199,188 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
     );
   }
 
-  void _showLevelDialog(String title, IconData icon, String info) {
-    showDialog(
-      context: context,
-      builder: (context) => AnimatedDialog(
-        child: Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: EdgeInsets.all(16),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Image.asset(
-                'assets/images/learning_road/level_info_container.png',
-                width: MediaQuery.of(context).size.width * 0.95,
-                fit: BoxFit.contain,
-              ),
-              Positioned(
-                top: 20,
-                right: 20,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: klooigeldBlauw,
-                      shape: BoxShape.circle,
-                    ),
-                    padding: EdgeInsets.all(8),
-                    child: Icon(
-                      Icons.close,
-                      color: AppTheme.klooigeldRoze,
-                      size: 20,
-                    ),
+  // CHECKLIST: If scenario completed previously, show "Play Again"
+  Future<bool> _isScenarioCompleted(String scenarioKey) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(scenarioKey) ?? false;
+  }
+
+  void _showLevelDialog(String title, IconData icon, String info) async {
+  bool isBuyNowPayLaterCompleted = false;
+  if (title == "Buy Now, Pay Later") {
+    isBuyNowPayLaterCompleted = await _isScenarioCompleted('scenario_buynowpaylater_completed');
+  }
+
+  showDialog(
+    context: context,
+    builder: (context) => AnimatedDialog(
+      child: Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.all(16),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Image.asset(
+              'assets/images/learning_road/level_info_container.png',
+              width: MediaQuery.of(context).size.width * 0.95,
+              fit: BoxFit.contain,
+            ),
+            Positioned(
+              top: 20,
+              right: 20,
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: klooigeldBlauw,
+                    shape: BoxShape.circle,
+                  ),
+                  padding: EdgeInsets.all(8),
+                  child: Icon(
+                    Icons.close,
+                    color: AppTheme.klooigeldRoze,
+                    size: 20,
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 40.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      icon,
-                      size: 50,
-                      color: klooigeldBlauw,
-                    ),
-                    SizedBox(height: 5),
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: klooigeldBlauw,
-                        fontFamily: AppTheme.neighbor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                    SizedBox(height: 5),
-                    Text(
-                      info,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: AppTheme.neighbor,
-                        fontWeight: FontWeight.w500,
-                        color: klooigeldBlauw,
-                        fontSize: 14,
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: klooigeldBlauw,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: Text(
-                        "PLAY",
-                        style: TextStyle(fontFamily: AppTheme.neighbor, color: AppTheme.klooigeldRoze),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showLockedMessage() {
-  ScaffoldMessenger.of(context).removeCurrentSnackBar(); 
-  
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      duration: Duration(seconds: 2),
-      content: Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: klooigeldRoze,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: klooigeldBlauw, width: 2), 
-          ),
-          child: Text(
-            "Locked game. Finish previous to continue.",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'neighbor',
-              fontWeight: FontWeight.bold,
-              color: klooigeldBlauw,
-              fontSize: 14,
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 40.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    icon,
+                    size: 50,
+                    color: klooigeldBlauw,
+                  ),
+                  SizedBox(height: 5),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: klooigeldBlauw,
+                      fontFamily: AppTheme.neighbor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Text(
+                    info,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: AppTheme.neighbor,
+                      fontWeight: FontWeight.w500,
+                      color: klooigeldBlauw,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: () async {
+                      Navigator.pop(context); // Close the dialog
+                      if (title == "Buy Now, Pay Later") {
+                        if (isBuyNowPayLaterCompleted) {
+                          // Replay scenario: clear progress before navigating
+                          SharedPreferences prefs = await SharedPreferences.getInstance();
+                          await prefs.remove('scenario_buynowpaylater_chatMessages');
+                          await prefs.remove('scenario_buynowpaylater_tempBalance');
+                          await prefs.remove('scenario_buynowpaylater_currentStep');
+                          await prefs.remove('scenario_buynowpaylater_showNextButton');
+                          await prefs.remove('scenario_buynowpaylater_showChoices');
+                          await prefs.remove('scenario_buynowpaylater_lastChoiceWasBNPL');
+                        }
+
+                        // Navigate to the Buy Now, Pay Later scenario screen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const BuyNowPayLaterScenarioScreen(),
+                          ),
+                        );
+                      } else {
+                        // Future scenario screens to be integrated similarly.
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: klooigeldBlauw,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: Text(
+                      isBuyNowPayLaterCompleted ? "REPLAY" : "PLAY",
+                      style: TextStyle(fontFamily: AppTheme.neighbor, color: AppTheme.klooigeldRoze),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      ),
-      behavior: SnackBarBehavior.floating, // Floating at the bottom
-      margin: EdgeInsets.only(
-        bottom: 20, // Space above bottom edge
-        left: 16,
-        right: 16,
       ),
     ),
   );
 }
 
 
+  void _showLockedMessage() {
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        duration: Duration(seconds: 2),
+        content: Align(
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: klooigeldRoze,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: klooigeldBlauw, width: 2),
+            ),
+            child: Text(
+              "Locked game. Finish previous to continue.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppTheme.neighbor,
+                fontWeight: FontWeight.bold,
+                color: klooigeldBlauw,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(
+          bottom: 20,
+          left: 16,
+          right: 16,
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       body: Stack(
         children: [
-          // Keep original background
           Positioned.fill(
             child: Image.asset(
               'assets/images/learning_road/background_new.png',
@@ -282,19 +389,12 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
           ),
           Column(
             children: [
-              // Header & Progress are now handled by ProgressAndBalanceDisplay
               ProgressAndBalanceDisplay(
                 progress: _iconPositionAnimation.value,
-                
                 title: 'GAMES',
                 onBackPressed: () => Navigator.pop(context),
-                onMenuItemSelected: (value) {
-                  // Handle menu selection if needed
-                },
+                onMenuItemSelected: (value) {},
               ),
-              
-              
-              // Learning Road
               Expanded(
                 child: Stack(
                   children: [
@@ -346,7 +446,8 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                                             isActive: stops[i]['status'] == 'unlocked',
                                             isCurrent: i == unlockedIndex,
                                             color: stops[i]['status'] == 'unlocked'
-                                                ? unlockedStopColors[i % unlockedStopColors.length]
+                                                ? unlockedStopColors[
+                                                    i % unlockedStopColors.length]
                                                 : Colors.white.withOpacity(0.8),
                                           ),
                                         ),
@@ -364,7 +465,6 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                                 ),
                               ),
                             ),
-
                             Positioned(
                               top: 0,
                               left: 0,

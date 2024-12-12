@@ -25,7 +25,6 @@ class CategoryIcon extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Category circle icon
           Container(
             width: 50,
             height: 50,
@@ -39,7 +38,6 @@ class CategoryIcon extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          // Category label: use neighbor for body text
           Text(
             label,
             style: TextStyle(
@@ -49,7 +47,6 @@ class CategoryIcon extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
-          // Underline if selected
           Container(
             width: 20,
             height: isSelected ? 3 : 0,
