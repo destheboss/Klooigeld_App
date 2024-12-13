@@ -28,6 +28,12 @@ class _BuyNowPayLaterScenarioScreenState
   late ScenarioModel _scenario;
   int _currentScenarioIndex = 0;
   int _klooicash = 0; // Changed from double to int
+
+  // New Variables
+  int _originalBalance = 0; // Stores the original balance when entering the game
+  int _accumulatedDeductions = 0; // Tracks total in-game deductions
+
+
   bool _isLoading = true;
   bool _showChoices = true;
   bool _scenarioCompleted = false;
@@ -98,90 +104,120 @@ class _BuyNowPayLaterScenarioScreenState
     }
   }
 
-    Future<void> _initializeScenario() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+ Future<void> _initializeScenario() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    // Retrieve stored data
-    _bestScore = prefs.getInt('best_score_buynowpaylater') ?? 0;
-    _username = prefs.getString('username') ?? 'You';
-    _avatarImagePath = prefs.getString('avatarImagePath');
+  // Retrieve stored data
+  _bestScore = prefs.getInt('best_score_buynowpaylater') ?? 0;
+  _username = prefs.getString('username') ?? 'You';
+  _avatarImagePath = prefs.getString('avatarImagePath');
 
-    _initialK = _retrieveBalance(prefs);
-    _klooicash = prefs.getInt('scenario_buynowpaylater_tempBalance') ?? _initialK;
+  // Retrieve the current main balance
+  int currentMainBalance = _retrieveBalance(prefs);
 
-    bool completedBefore = prefs.getBool('scenario_buynowpaylater_completed') ?? false;
-    _scenarioFirstTime = !completedBefore;
+  // Retrieve original balance; if not set, initialize it to current main balance
+  _originalBalance = prefs.getInt('scenario_buynowpaylater_original_balance') ?? currentMainBalance;
 
-    int savedStep = prefs.getInt('scenario_buynowpaylater_currentStep') ?? 0;
+  // If original balance is not set, save it now
+  if (!prefs.containsKey('scenario_buynowpaylater_original_balance')) {
+    await prefs.setInt('scenario_buynowpaylater_original_balance', _originalBalance);
+  }
 
-      // Load purchase flags
-    _flowersPurchased = prefs.getBool('scenario_buynowpaylater_flowersPurchased') ?? false;
-    _chocolatesPurchased = prefs.getBool('scenario_buynowpaylater_chocolatesPurchased') ?? false;
+  // Retrieve accumulated deductions
+  _accumulatedDeductions = prefs.getInt('scenario_buynowpaylater_accumulated_deductions') ?? 0;
 
-    // Restore chat messages
-    List<String>? storedMessages = prefs.getStringList('scenario_buynowpaylater_chatMessages');
-    if (storedMessages != null) {
-      _chatMessages = storedMessages.map((msg) => jsonDecode(msg) as Map<String, dynamic>).toList();
+  // Recalculate temporary balance based on current main balance and accumulated deductions
+  _klooicash = currentMainBalance - _accumulatedDeductions;
+
+  bool completedBefore = prefs.getBool('scenario_buynowpaylater_completed') ?? false;
+  _scenarioFirstTime = !completedBefore;
+
+  int savedStep = prefs.getInt('scenario_buynowpaylater_currentStep') ?? 0;
+
+  // Load purchase flags from both scenario-specific flags and rewards shop purchases
+  _flowersPurchased = prefs.getBool('scenario_buynowpaylater_flowersPurchased') ?? false;
+  _chocolatesPurchased = prefs.getBool('scenario_buynowpaylater_chocolatesPurchased') ?? false;
+
+  // Additionally, check if items were purchased from the Rewards Shop
+  List<String> purchasedItems = prefs.getStringList('purchasedItems') ?? [];
+  if (purchasedItems.contains('201')) {
+    _flowersPurchased = true;
+  }
+  if (purchasedItems.contains('202')) {
+    _chocolatesPurchased = true;
+  }
+
+  // Restore chat messages
+  List<String>? storedMessages = prefs.getStringList('scenario_buynowpaylater_chatMessages');
+  if (storedMessages != null) {
+    _chatMessages = storedMessages.map((msg) => jsonDecode(msg) as Map<String, dynamic>).toList();
+  }
+
+  // Restore UI state flags
+  _showNextButton = prefs.getBool('scenario_buynowpaylater_showNextButton') ?? false;
+  _showChoices = prefs.getBool('scenario_buynowpaylater_showChoices') ?? true;
+
+  // Restore the BNPL flag
+  _lastChoiceWasBNPL = prefs.getBool('scenario_buynowpaylater_lastChoiceWasBNPL') ?? false;
+
+  bool dialogShown = false;
+
+  // Ask user whether to resume or restart if there's any progress beyond step 0
+  if (!completedBefore && savedStep > 0 && storedMessages != null && storedMessages.isNotEmpty) {
+    bool? resume = await _askResumeOrRestart();
+    if (resume == true) {
+      _currentScenarioIndex = savedStep;
+      _resumed = true;
+    } else {
+      // Restart scenario
+      _currentScenarioIndex = 0;
+      _klooicash = currentMainBalance; // Reset to current main balance
+      _chatMessages.clear(); // Clear chat messages
+      _userChoices.clear();
+
+      // Reset UI state flags
+      _showNextButton = false;
+      _showChoices = true;
+
+      // Reset accumulated deductions
+      _accumulatedDeductions = 0;
+      await prefs.setInt('scenario_buynowpaylater_accumulated_deductions', _accumulatedDeductions);
+
+      // Clear saved state as user chose to restart
+      await _clearSavedState();
     }
+  }
 
-    // Restore UI state flags
-    _showNextButton = prefs.getBool('scenario_buynowpaylater_showNextButton') ?? false;
-    _showChoices = prefs.getBool('scenario_buynowpaylater_showChoices') ?? true;
+  setState(() {
+    _isLoading = false;
+  });
 
-    // Restore the BNPL flag
-    _lastChoiceWasBNPL = prefs.getBool('scenario_buynowpaylater_lastChoiceWasBNPL') ?? false;
-
-    bool dialogShown = false;
-
-    // Ask user whether to resume or restart if there's any progress beyond step 0
-    if (!completedBefore && savedStep > 0 && storedMessages != null && storedMessages.isNotEmpty) {
-      bool? resume = await _askResumeOrRestart();
-      if (resume == true) {
-        _currentScenarioIndex = savedStep;
-        _resumed = true;
-      } else {
-        // Restart scenario
-        _currentScenarioIndex = 0;
-        _klooicash = _initialK;
-        _chatMessages.clear(); // Clear chat messages
-        _userChoices.clear();
-
-        // Reset UI state flags
-        _showNextButton = false;
-        _showChoices = true;
-
-        // Clear saved state as user chose to restart
-        await _clearSavedState();
-      }
-    }
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    // Trigger BNPL Reminder if applicable
-    if (_lastChoiceWasBNPL) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showBNPLReminder();
-        dialogShown = true;
-      });
-    }
-
-    Future.microtask(() {
-      if (_chatMessages.isNotEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToBottomWithAnimation();
-      });
-      } else {
-        _addNPCMessage(
-          _scenario.steps[_currentScenarioIndex].npcMessage,
-          _scenario.steps[_currentScenarioIndex].npcName,
-          animate: false,
-        );
-        _scrollToBottomWithAnimation();
-      }
+  // Trigger BNPL Reminder if applicable
+  if (_lastChoiceWasBNPL) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showBNPLReminder();
+      dialogShown = true;
     });
   }
+
+  Future.microtask(() {
+    if (_chatMessages.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottomWithAnimation();
+      });
+    } else {
+      _addNPCMessage(
+        _scenario.steps[_currentScenarioIndex].npcMessage,
+        _scenario.steps[_currentScenarioIndex].npcName,
+        animate: false,
+      );
+      _scrollToBottomWithAnimation();
+    }
+  });
+}
+
+
+
 
 
   Future<bool?> _askResumeOrRestart() async {
@@ -246,19 +282,20 @@ class _BuyNowPayLaterScenarioScreenState
     return result;
   }
 
-  Future<void> _clearSavedState() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('scenario_buynowpaylater_currentStep');
-    await prefs.remove('scenario_buynowpaylater_chatMessages');
-    await prefs.remove('scenario_buynowpaylater_tempBalance');
+Future<void> _clearSavedState() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.remove('scenario_buynowpaylater_currentStep');
+  await prefs.remove('scenario_buynowpaylater_chatMessages');
+  await prefs.remove('scenario_buynowpaylater_accumulated_deductions');
+  await prefs.remove('scenario_buynowpaylater_original_balance');
 
-    // **Clear UI state flags**
-    await prefs.remove('scenario_buynowpaylater_showNextButton');
-    await prefs.remove('scenario_buynowpaylater_showChoices');
+  // **Clear UI state flags**
+  await prefs.remove('scenario_buynowpaylater_showNextButton');
+  await prefs.remove('scenario_buynowpaylater_showChoices');
 
-    // **Clear the BNPL flag**
-    await prefs.remove('scenario_buynowpaylater_lastChoiceWasBNPL');
-  }
+  // **Clear the BNPL flag**
+  await prefs.remove('scenario_buynowpaylater_lastChoiceWasBNPL');
+}
 
   void _addNPCMessage(String message, String speakerName, {bool animate = true}) {
     _chatMessages.add({
@@ -344,75 +381,108 @@ class _BuyNowPayLaterScenarioScreenState
   }
 
   Future<void> _onChoiceSelected(ScenarioChoice choice) async {
-    setState(() {
-      _showChoices = false;
-      _showNextButton = true;
-    });
+  setState(() {
+    _showChoices = false;
+    _showNextButton = true;
+  });
 
-    // Add user dialogue bubble using dialogueText from the choice
-    _addUserMessage(choice.dialogueText);
+  // Add user dialogue bubble using dialogueText from the choice
+  _addUserMessage(choice.dialogueText);
 
-    int actualChange = _scenarioFirstTime ? choice.kChange.toInt() : 0; // Ensure kChange is int
-    int newBalance = _klooicash + actualChange;
-    _klooicash = newBalance;
+  // Calculate the actual change in balance
+  int actualChange = _scenarioFirstTime ? choice.kChange.toInt() : 0; // Ensure kChange is int
+  if (actualChange < 0) {
+    _accumulatedDeductions += -actualChange; // Accumulate deductions only for negative changes
+  } else {
+    _klooicash += actualChange; // Handle positive changes if applicable
+  }
 
-    // Check if BNPL choice
-    _lastChoiceWasBNPL = false;
-    if (choice.text.contains("Klaro")) {
-      _lastChoiceWasBNPL = true;
-    }
+  // Recalculate temporary balance based on current main balance and accumulated deductions
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  int currentMainBalance = _retrieveBalance(prefs);
+  _klooicash = currentMainBalance - _accumulatedDeductions;
 
-    _addOutcomeMessage(choice.outcome, choice.kChange.toInt());
+  // Check if BNPL choice
+  _lastChoiceWasBNPL = false;
+  if (choice.text.contains("Klaro")) {
+    _lastChoiceWasBNPL = true;
+  }
 
-    // Record the user choice
-    _userChoices.add(choice);
+  _addOutcomeMessage(choice.outcome, choice.kChange.toInt());
 
-    // If it's grandma gift and first time scenario, add the reward:
-    if (_scenarioFirstTime) {
-      if (choice.text.contains("flowers")) {
-        _klooicash += 30;
-      } else if (choice.text.contains("chocolates")) {
-        _klooicash += 15;
-      }
-    }
+  // Record the user choice
+  _userChoices.add(choice);
 
-    await _saveKlooicash();
-
-    // **Only save progress if beyond step 0**
-    if (_currentScenarioIndex > 0) {
-      await _saveCurrentStep();
+  // If it's grandma gift and first time scenario, add the reward:
+  if (_scenarioFirstTime) {
+    if (choice.text.contains("flowers")) {
+      _klooicash += 30;
+      // Optionally, consider this as a positive change
+    } else if (choice.text.contains("chocolates")) {
+      _klooicash += 15;
+      // Optionally, consider this as a positive change
     }
   }
+
+  await _saveBalanceState();
+
+  // **Only save progress if beyond step 0**
+  if (_currentScenarioIndex > 0) {
+    await _saveCurrentStep();
+  }
+}
+
+
 
   Future<void> _saveKlooicash() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     // **Modified to save to 'scenario_buynowpaylater_tempBalance' as int**
     await prefs.setInt('scenario_buynowpaylater_tempBalance', _klooicash); // Store as int
   }
+Future<void> _saveBalanceState() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  
+  // Save the original balance (only if it's the first time)
+  if (!_resumed) {
+    await prefs.setInt('scenario_buynowpaylater_original_balance', _originalBalance);
+  }
+  
+  // Save the accumulated deductions
+  await prefs.setInt('scenario_buynowpaylater_accumulated_deductions', _accumulatedDeductions);
+  
+  // Save the temporary balance
+  await prefs.setInt('scenario_buynowpaylater_tempBalance', _klooicash);
+}
+
+
+
 
   Future<void> _saveCurrentStep() async {
-    // **Prevent saving if at step 0**
-    if (_currentScenarioIndex <= 0) {
-      return;
-    }
-
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('scenario_buynowpaylater_currentStep', _currentScenarioIndex);
-
-    // Save chat messages as a list of strings
-    List<String> serializedMessages = _chatMessages.map((msg) => jsonEncode(msg)).toList();
-    await prefs.setStringList('scenario_buynowpaylater_chatMessages', serializedMessages);
-
-    // Save the current in-progress balance
-    await prefs.setInt('scenario_buynowpaylater_tempBalance', _klooicash); // Store as int
-
-    // **Save UI state flags**
-    await prefs.setBool('scenario_buynowpaylater_showNextButton', _showNextButton);
-    await prefs.setBool('scenario_buynowpaylater_showChoices', _showChoices);
-
-    // **Save the BNPL flag**
-    await prefs.setBool('scenario_buynowpaylater_lastChoiceWasBNPL', _lastChoiceWasBNPL);
+  // **Prevent saving if at step 0**
+  if (_currentScenarioIndex <= 0) {
+    return;
   }
+
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setInt('scenario_buynowpaylater_currentStep', _currentScenarioIndex);
+
+  // Save chat messages as a list of strings
+  List<String> serializedMessages = _chatMessages.map((msg) => jsonEncode(msg)).toList();
+  await prefs.setStringList('scenario_buynowpaylater_chatMessages', serializedMessages);
+
+  // Save the accumulated deductions
+  await prefs.setInt('scenario_buynowpaylater_accumulated_deductions', _accumulatedDeductions);
+
+  // **Save UI state flags**
+  await prefs.setBool('scenario_buynowpaylater_showNextButton', _showNextButton);
+  await prefs.setBool('scenario_buynowpaylater_showChoices', _showChoices);
+
+  // **Save the BNPL flag**
+  await prefs.setBool('scenario_buynowpaylater_lastChoiceWasBNPL', _lastChoiceWasBNPL);
+}
+
+
+
 
   Future<void> _goToNextScenario() async {
     setState(() {
@@ -505,47 +575,57 @@ class _BuyNowPayLaterScenarioScreenState
 
 
   Future<void> _markLevelCompleted() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (_scenarioFirstTime) {
-      if (_klooicash > 0) {
-        int unlockedIndex = prefs.getInt('unlockedLevelIndex') ?? 0;
-        if (unlockedIndex < 1) {
-          unlockedIndex = 1;
-          await prefs.setInt('unlockedLevelIndex', unlockedIndex);
-        }
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  if (_scenarioFirstTime) {
+    if (_klooicash > 0) {
+      int unlockedIndex = prefs.getInt('unlockedLevelIndex') ?? 0;
+      if (unlockedIndex < 1) {
+        unlockedIndex = 1;
+        await prefs.setInt('unlockedLevelIndex', unlockedIndex);
       }
-
-      if (_klooicash > _bestScore) { // Changed to compare int
-        _bestScore = _klooicash;
-        await prefs.setInt('best_score_buynowpaylater', _bestScore);
-      }
-
-      await prefs.setBool('scenario_buynowpaylater_completed', true);
-      await prefs.remove('scenario_buynowpaylater_currentStep');
-
-      // **Update main balance with the final in-game balance**
-      await prefs.setInt('klooicash', _klooicash); // Changed to setInt
-
-      // **Remove the temporary balance as scenario is completed**
-      await prefs.remove('scenario_buynowpaylater_tempBalance');
-
-      // **Clear UI state flags**
-      await prefs.remove('scenario_buynowpaylater_showNextButton');
-      await prefs.remove('scenario_buynowpaylater_showChoices');
-    } else {
-      // Replay scenario: revert klooicash
-      int currentBalance = prefs.getInt('klooicash') ?? _initialK;
-      if (currentBalance != _initialK) {
-        await prefs.setInt('klooicash', _initialK);
-        _klooicash = _initialK;
-      }
-      await prefs.remove('scenario_buynowpaylater_currentStep');
-
-      // **Clear UI state flags**
-      await prefs.remove('scenario_buynowpaylater_showNextButton');
-      await prefs.remove('scenario_buynowpaylater_showChoices');
     }
+
+    if (_klooicash > _bestScore) { // Changed to compare int
+      _bestScore = _klooicash;
+      await prefs.setInt('best_score_buynowpaylater', _bestScore);
+    }
+
+    await prefs.setBool('scenario_buynowpaylater_completed', true);
+    await prefs.remove('scenario_buynowpaylater_currentStep');
+
+    // **Update main balance with the final in-game balance**
+    await prefs.setInt('klooicash', _klooicash); // Changed to setInt
+
+    // **Remove the original balance and accumulated deductions as scenario is completed**
+    await prefs.remove('scenario_buynowpaylater_original_balance');
+    await prefs.remove('scenario_buynowpaylater_accumulated_deductions');
+
+    // **Remove the temporary balance as scenario is completed**
+    await prefs.remove('scenario_buynowpaylater_tempBalance');
+
+    // **Clear UI state flags**
+    await prefs.remove('scenario_buynowpaylater_showNextButton');
+    await prefs.remove('scenario_buynowpaylater_showChoices');
+  } else {
+    // Replay scenario: revert klooicash
+    int currentBalance = prefs.getInt('klooicash') ?? _originalBalance;
+    if (currentBalance != _originalBalance) {
+      await prefs.setInt('klooicash', _originalBalance);
+      _klooicash = _originalBalance;
+    }
+    await prefs.remove('scenario_buynowpaylater_currentStep');
+
+    // **Clear UI state flags**
+    await prefs.remove('scenario_buynowpaylater_showNextButton');
+    await prefs.remove('scenario_buynowpaylater_showChoices');
+
+    // **Reset accumulated deductions for replay**
+    _accumulatedDeductions = 0;
+    await prefs.setInt('scenario_buynowpaylater_accumulated_deductions', _accumulatedDeductions);
   }
+}
+
+
 
   void _showEndScenarioFeedbackInChat() {
     _addDelimiter();
@@ -567,7 +647,7 @@ class _BuyNowPayLaterScenarioScreenState
         finalMessage = "This replay shows you can do better with different choices. Your Klooicash goes back to normal now.\n\n" +
                        choiceAnalysis;
       } else {
-        finalMessage = "Even on replay, your results aren’t great. But you return to your original Klooicash.\n\n" +
+        finalMessage = "Even on replay, your balance isn't that great. But you return to your original Klooicash.\n\n" +
                        choiceAnalysis;
       }
     }
@@ -630,6 +710,7 @@ class _BuyNowPayLaterScenarioScreenState
       return RewardsShopScreen(
         isModal: true,
         initialCategoryId: 4,
+        initialBalance: _klooicash, // Pass in-game balance
         onClose: () {
           Navigator.pop(context, <int>{});
         },
@@ -654,7 +735,7 @@ class _BuyNowPayLaterScenarioScreenState
     }
   });
 
-  await _saveKlooicash();
+  await _saveBalanceState();
 
   // Save the purchase flags to SharedPreferences
   SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -684,15 +765,14 @@ class _BuyNowPayLaterScenarioScreenState
   Future<void> _replayScenario() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
 
-  // Clear all scenario-related stored data
+  // Clear all scenario-related stored data except the original balance and main balance
   await prefs.remove('scenario_buynowpaylater_chatMessages');
-  await prefs.remove('scenario_buynowpaylater_tempBalance');
+  await prefs.remove('scenario_buynowpaylater_accumulated_deductions');
   await prefs.remove('scenario_buynowpaylater_currentStep');
   await prefs.remove('scenario_buynowpaylater_showNextButton');
   await prefs.remove('scenario_buynowpaylater_showChoices');
   await prefs.remove('scenario_buynowpaylater_lastChoiceWasBNPL');
-  // await prefs.remove('scenario_buynowpaylater_completed');
-
+  // Do not remove 'scenario_buynowpaylater_original_balance' here to retain the original balance
 
   setState(() {
     _currentScenarioIndex = 0;
@@ -700,7 +780,7 @@ class _BuyNowPayLaterScenarioScreenState
     _scenarioCompleted = false;
     _chatMessages.clear(); // Clear chat messages
     _userChoices.clear(); // Clear user choices
-    _klooicash = _initialK; // Reset balance to initial value
+    _klooicash = _originalBalance - _accumulatedDeductions; // Reset balance based on original balance and deductions
     _showNextButton = false;
     _lastChoiceWasBNPL = false;
     _scenarioFirstTime = true; // Explicitly set to true for replay
@@ -718,6 +798,7 @@ class _BuyNowPayLaterScenarioScreenState
     _scrollToBottomWithAnimation();
   });
 }
+
 
 
 
@@ -870,7 +951,7 @@ class _BuyNowPayLaterScenarioScreenState
                       ),
                     ),
                     child: Text(
-                      "Replay",
+                      "Try Again",
                       style: TextStyle(
                           fontFamily: AppTheme.neighbor,
                           color: AppTheme.white),

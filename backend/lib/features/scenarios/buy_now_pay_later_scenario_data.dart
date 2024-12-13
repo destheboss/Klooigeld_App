@@ -92,7 +92,7 @@ ScenarioModel buildBuyNowPayLaterScenario() {
         ScenarioChoice(
           text: "Continue",
           kChange: 0.0,
-          outcome: "‘Aight imma head out’🚶, you say, deciding what to grab for Grandma.",
+          outcome: "‘Aight imma head out’🚶, you say, deciding what to grab for Grandma",
           dialogueText: "Grandma deserves something nice. Let’s see..."
         ),
       ],
@@ -104,13 +104,13 @@ ScenarioModel buildBuyNowPayLaterScenario() {
       npcMessage: "💞 Oh, my dear! You being here is all I could ever hope for. It’s moments like these, surrounded by family, that I cherish the most 🥰 Thank you for being here, sweetheart 🥰🥰🥰",
       choices: [
         ScenarioChoice(
-          text: "Buy the 10K flowers.",
+          text: "Buy the 10K flowers",
           kChange: -10.0,
           outcome: "🌺 Grandma’s eyes light up as you hand her the flowers. ‘You’re such a thoughtful soul’, she says, slipping 30K into your hand 💸",
           dialogueText: "These are for you, Grandma. Happy birthday! You deserve the best"
         ),
         ScenarioChoice(
-          text: "Buy the 5K chocolates.",
+          text: "Buy the 5K chocolates",
           kChange: -5.0,
           outcome: "🍫 Grandma glows as she takes the chocolates. ‘You always know how to make me smile’, she says, gifting you a small sum of 15K 🎁",
           dialogueText: "Got these just for you, Grandma! Sweet treats for the sweetest person"

@@ -71,15 +71,7 @@ class ScenarioMessageBubble extends StatelessWidget {
                 bottomRight: Radius.circular(15),
               ),
             ),
-            child: Text(
-              msg["message"],
-              style: TextStyle(
-                fontFamily: AppTheme.neighbor,
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-                color: Colors.black,
-              ),
-            ),
+            child: _formatMessageText(msg["message"]),
           ),
         ],
       ),
@@ -128,15 +120,7 @@ class ScenarioMessageBubble extends StatelessWidget {
                 bottomRight: Radius.circular(15),
               ),
             ),
-            child: Text(
-              msg["message"],
-              style: TextStyle(
-                fontFamily: AppTheme.neighbor,
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-                color: Colors.black,
-              ),
-            ),
+            child: _formatMessageText(msg["message"]),
           ),
         ],
       ),
@@ -150,18 +134,84 @@ class ScenarioMessageBubble extends StatelessWidget {
         scale: 1.0,
         duration: const Duration(milliseconds: 300),
         child: Center(
-          child: Text(
-            msg["message"],
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: AppTheme.neighbor,
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-              color: Colors.black87,
-            ),
-          ),
+          child: _formatMessageText(msg["message"]),
         ),
       ),
     );
   }
+
+  Widget _formatMessageText(String message) {
+  final regex = RegExp(r'(\d+)K');
+  final matches = regex.allMatches(message);
+
+  List<InlineSpan> children = [];
+  int lastMatchEnd = 0;
+
+  // Customizable offset
+  const double imageOffsetX = 0; // Horizontal offset
+  const double imageOffsetY = -0.3; // Vertical offset
+
+  TextStyle baseTextStyle = TextStyle(
+    fontFamily: AppTheme.neighbor,
+    fontWeight: FontWeight.w500,
+    fontSize: 14,
+    color: Colors.black,
+    height: 1.4, // Adjust line height to match the original
+  );
+
+  for (var match in matches) {
+    // Add text before the match
+    if (match.start > lastMatchEnd) {
+      children.add(
+        TextSpan(
+          text: message.substring(lastMatchEnd, match.start),
+          style: baseTextStyle,
+        ),
+      );
+    }
+
+    // Add the number with a zero-width space to prevent overflow
+    children.add(
+      TextSpan(
+        text: '${match.group(1)}\u{200B}',
+        style: baseTextStyle,
+      ),
+    );
+
+    // Add the currency image with translation
+    children.add(
+      WidgetSpan(
+        alignment: PlaceholderAlignment.middle,
+        child: Transform.translate(
+          offset: Offset(imageOffsetX, imageOffsetY),
+          child: Image.asset(
+            'assets/images/currency.png',
+            width: 10,
+            height: 10,
+          ),
+        ),
+      ),
+    );
+
+    lastMatchEnd = match.end;
+  }
+
+  // Add any remaining text after the last match
+  if (lastMatchEnd < message.length) {
+    children.add(
+      TextSpan(
+        text: message.substring(lastMatchEnd),
+        style: baseTextStyle,
+      ),
+    );
+  }
+
+  return RichText(
+    textAlign: TextAlign.left, // Match the alignment of the original Text widget
+    text: TextSpan(
+      children: children,
+    ),
+  );
+}
+
 }

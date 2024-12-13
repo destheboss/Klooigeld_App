@@ -13,6 +13,7 @@ class RewardsShopScreen extends StatefulWidget {
   final int? initialCategoryId;
   final VoidCallback? onClose;
   final ValueChanged<int>? onKlooicashUpdate;
+  final int? initialBalance;
 
   const RewardsShopScreen({
     super.key,
@@ -20,6 +21,7 @@ class RewardsShopScreen extends StatefulWidget {
     this.initialCategoryId,
     this.onClose,
     this.onKlooicashUpdate,
+    this.initialBalance,
   });
 
   @override
@@ -74,11 +76,19 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
 
   Future<void> _loadData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    _klooicash = prefs.getInt('klooicash') ?? 500;
+    
+    if (widget.initialBalance != null) {
+      _klooicash = widget.initialBalance!;
+    } else {
+      _klooicash = prefs.getInt('klooicash') ?? 500;
+    }
+
     List<String> storedItems = prefs.getStringList('purchasedItems') ?? [];
     _purchasedItems = storedItems.map((e) => int.parse(e)).toSet();
+    
     setState(() {});
   }
+
 
   Future<bool> _onWillPop() async {
     Navigator.pop(context, _purchasedItems);
@@ -135,7 +145,7 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     }
   }
 
-  Future<void> _onBuyPressed() async {
+    Future<void> _onBuyPressed() async {
     if (_selectedItemForPurchase == null) return;
     ShopItem item = _selectedItemForPurchase!;
 
@@ -145,10 +155,14 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
       _purchasedItems.add(item.id);
 
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('klooicash', _klooicash);
       List<String> storedItems = prefs.getStringList('purchasedItems') ?? [];
       storedItems.add(item.id.toString());
       await prefs.setStringList('purchasedItems', storedItems);
+
+      if (widget.initialBalance == null) {
+        // If not launched from game, update main klooicash
+        await prefs.setInt('klooicash', _klooicash);
+      }
 
       widget.onKlooicashUpdate?.call(_klooicash);
     }
@@ -156,6 +170,7 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     _hidePurchaseOverlay();
     setState(() {});
   }
+
 
   void _showPurchaseOverlay(ShopItem item) {
     // CHECKLIST: If item already purchased, do not show overlay again.

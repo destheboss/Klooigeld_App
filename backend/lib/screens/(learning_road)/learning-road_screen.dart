@@ -205,7 +205,7 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
     return prefs.getBool(scenarioKey) ?? false;
   }
 
-  void _showLevelDialog(String title, IconData icon, String info) async {
+ void _showLevelDialog(String title, IconData icon, String info) async {
   bool isBuyNowPayLaterCompleted = false;
   if (title == "Buy Now, Pay Later") {
     isBuyNowPayLaterCompleted = await _isScenarioCompleted('scenario_buynowpaylater_completed');
@@ -284,12 +284,20 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                         if (isBuyNowPayLaterCompleted) {
                           // Replay scenario: clear progress before navigating
                           SharedPreferences prefs = await SharedPreferences.getInstance();
+
+                          // Reset temporary balance and related scenario data
                           await prefs.remove('scenario_buynowpaylater_chatMessages');
                           await prefs.remove('scenario_buynowpaylater_tempBalance');
                           await prefs.remove('scenario_buynowpaylater_currentStep');
                           await prefs.remove('scenario_buynowpaylater_showNextButton');
                           await prefs.remove('scenario_buynowpaylater_showChoices');
                           await prefs.remove('scenario_buynowpaylater_lastChoiceWasBNPL');
+
+                          // Optionally, reset purchase flags if needed
+                          // If you want purchases to persist across replays, skip this
+                          // Otherwise, uncomment the following lines:
+                          // await prefs.setBool('scenario_buynowpaylater_flowersPurchased', false);
+                          // await prefs.setBool('scenario_buynowpaylater_chocolatesPurchased', false);
                         }
 
                         // Navigate to the Buy Now, Pay Later scenario screen
@@ -299,6 +307,21 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                             builder: (context) => const BuyNowPayLaterScenarioScreen(),
                           ),
                         );
+                        // .then((value) {
+                        //   // Optionally, update the unlockedIndex if scenario unlocks new levels
+                        //   // For example:
+                        //   if (value == true) {
+                        //     setState(() {
+                        //       if (unlockedIndex < stops.length - 1) {
+                        //         unlockedIndex++;
+                        //         stops[unlockedIndex]['status'] = 'unlocked';
+                        //         stops[unlockedIndex]['icon'] =
+                        //             financeIcons[(unlockedIndex - 1) % financeIcons.length];
+                        //         _saveProgress();
+                        //       }
+                        //     });
+                        //   }
+                        // });
                       } else {
                         // Future scenario screens to be integrated similarly.
                       }
@@ -321,6 +344,7 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
     ),
   );
 }
+
 
 
   void _showLockedMessage() {
