@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/(home)/home_screen.dart';
 import 'screens/(introduction)/introduction_screen.dart';
 
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -55,6 +57,7 @@ class SleepApp extends StatelessWidget {
 
     return MaterialApp(
       title: 'Klooigeld App',
+      navigatorObservers: [routeObserver], // Add the RouteObserver here
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,

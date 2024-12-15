@@ -1,3 +1,4 @@
+// home_screen.dart
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import '../../theme/app_theme.dart';
 import '../../screens/(learning_road)/learning-road_screen.dart';
 import '../../screens/(rewards)/rewards_shop_screen.dart';
 import '../../screens/(tips)/tips_screen.dart';
+import '../../main.dart'; // To access the global routeObserver
 
 /// Simple model matching the JSON structure in RewardsShopScreen
 class TransactionRecord {
@@ -40,7 +42,7 @@ class HomeScreen extends StatefulWidget {
   HomeScreenState createState() => HomeScreenState();
 }
 
-class HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> with RouteAware {
   Future<String>? _usernameFuture;
   Future<int>? _klooicashFuture;
   List<TransactionRecord> _transactions = [];
@@ -56,17 +58,43 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _usernameFuture = _getUsername();
-    _klooicashFuture = _getKlooicash();
-    _loadTransactions(); // Load once at startup
+    _loadInitialData();
   }
 
-  /// Reload transactions each time the HomeScreen is shown
-  /// This ensures the transaction list updates instantly upon returning.
+  /// Subscribe to the RouteObserver
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  /// Unsubscribe from the RouteObserver to prevent memory leaks
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  /// Called when the current route has been popped back to.
+  @override
+  void didPopNext() {
+    _refreshData();
+  }
+
+  /// Load initial data for username, klooicash, and transactions
+  void _loadInitialData() {
+    _usernameFuture = _getUsername();
+    _klooicashFuture = _getKlooicash();
     _loadTransactions();
+  }
+
+  /// Refresh data when returning to HomeScreen
+  Future<void> _refreshData() async {
+    setState(() {
+      _usernameFuture = _getUsername();
+      _klooicashFuture = _getKlooicash();
+    });
+    await _loadTransactions();
   }
 
   Future<String> _getUsername() async {
@@ -331,8 +359,7 @@ class HomeScreenState extends State<HomeScreen> {
                           onTap: () async {
                             // When returning from TipsScreen, reload transactions to reflect any changes.
                             await Navigator.push(context, MaterialPageRoute(builder: (context) => const TipsScreen()));
-                            _loadTransactions();
-                            setState(() {});
+                            _refreshData();
                           },
                           padding: const EdgeInsets.all(16.0),
                           child: Row(
@@ -365,8 +392,7 @@ class HomeScreenState extends State<HomeScreen> {
                                     context,
                                     MaterialPageRoute(builder: (context) => LearningRoadScreen()),
                                   );
-                                  _loadTransactions();
-                                  setState(() {});
+                                  _refreshData();
                                 },
                                 padding: const EdgeInsets.all(16.0),
                                 child: Column(
@@ -398,8 +424,7 @@ class HomeScreenState extends State<HomeScreen> {
                                     context,
                                     MaterialPageRoute(builder: (context) => const RewardsShopScreen()),
                                   );
-                                  _loadTransactions(); // refresh after shop
-                                  setState(() {});
+                                  _refreshData(); // refresh after shop
                                 },
                                 padding: const EdgeInsets.all(16.0),
                                 child: Column(
@@ -494,10 +519,10 @@ class HomeScreenState extends State<HomeScreen> {
                                   description: tx.description,
                                   amount: formattedAmount,
                                   date: _formatDate(tx.date),
-                              );
-                            },
+                                );
+                              },
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ],
@@ -510,4 +535,3 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
