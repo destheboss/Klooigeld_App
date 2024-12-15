@@ -200,15 +200,19 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     }
 
     // originalBalance
-    if (!completedBefore) {
-      // First time scenario
+    if (!_isTryAgain && !completedBefore) {
+      // First time scenario or not in try-again
       _originalBalance = currentMainBalance;
       await prefs.setInt('scenario_buynowpaylater_original_balance', _originalBalance);
       debugPrint("Setting original balance to $_originalBalance.");
-    } else {
-      // If completed, keep originalBalance from previous run
+    } else if (!_isTryAgain && completedBefore) {
+      // If completed and not in try-again, keep originalBalance from previous run
       _originalBalance = prefs.getInt('scenario_buynowpaylater_original_balance') ?? currentMainBalance;
       debugPrint("Using original balance from previous run: $_originalBalance.");
+    } else if (_isTryAgain) {
+      // In try-again, keep originalBalance as is
+      _originalBalance = prefs.getInt('scenario_buynowpaylater_original_balance') ?? currentMainBalance;
+      debugPrint("Using original balance for Try Again: $_originalBalance.");
     }
 
     // ephemeral data
@@ -431,8 +435,8 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
 
   Future<void> _saveBalanceState() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (!_resumed) {
-      // Only set original balance if not resuming partial progress
+    if (!_resumed && !_isTryAgain) {
+      // Only set original balance if not resuming partial progress and not in Try Again
       await prefs.setInt('scenario_buynowpaylater_original_balance', _originalBalance);
     }
     await prefs.setInt('scenario_buynowpaylater_accumulated_deductions', _accumulatedDeductions);
@@ -755,7 +759,11 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     } 
     else if (_isTryAgain) {
       // single tryAgain attempt
-      debugPrint("Completing single 'Try Again' attempt. Marking scenario complete again, ephemeral revert.");
+      debugPrint("Completing single 'Try Again' attempt. Applying changes to main balance.");
+
+      // Update the main balance to _klooicash
+      await prefs.setInt('klooicash', _klooicash);
+      debugPrint("Updated main Klooicash balance to $_klooicash.");
 
       // Unlock the next level after a successful Try Again attempt
       int unlockedIndex = prefs.getInt('unlockedLevelIndex') ?? 0;
@@ -767,35 +775,12 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
 
       await prefs.setBool('scenario_buynowpaylater_completed', true);
 
-      // revert ephemeral changes
-      int currentMainBalance = prefs.getInt('klooicash') ?? _originalBalance;
-      if (currentMainBalance != _originalBalance) {
-        await prefs.setInt('klooicash', _originalBalance);
-        debugPrint("Reverted main balance from $currentMainBalance to $_originalBalance.");
-      }
-      _klooicash = _originalBalance;
-
-      _accumulatedDeductions = 0;
-      await prefs.setInt('scenario_buynowpaylater_accumulated_deductions', 0);
-      debugPrint("Reset accumulated deductions to $_accumulatedDeductions.");
-
-      // revert ephemeral purchases made during "try again"
-      List<String> permanentlyPurchased = prefs.getStringList('purchasedItems') ?? [];
-      if (!permanentlyPurchased.contains('201')) {
-        _flowersPurchased = false;
-        await prefs.setBool('scenario_buynowpaylater_flowersPurchased', false);
-        debugPrint("Reverted flowersPurchased to $_flowersPurchased.");
-      }
-      if (!permanentlyPurchased.contains('202')) {
-        _chocolatesPurchased = false;
-        await prefs.setBool('scenario_buynowpaylater_chocolatesPurchased', false);
-        debugPrint("Reverted chocolatesPurchased to $_chocolatesPurchased.");
-      }
-
+      // Clear ephemeral
       await _clearSavedState();
       await prefs.setBool('scenario_buynowpaylater_isTryAgain', false);
       debugPrint("Cleared try-again state.");
 
+      // The user cannot try again again
       _tryAgainEnabled = false; 
       _isTryAgain = false;
       _scenarioFirstTime = false; 
@@ -841,10 +826,9 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
   Future<void> _tryAgainScenario() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    // Revert to original scenario balance
-    _klooicash = _originalBalance;
-    await prefs.setInt('klooicash', _originalBalance);
-    debugPrint("Set Klooicash to original balance: $_klooicash.");
+    // Retrieve the current main balance to use as the starting point for Try Again
+    int currentMainBalance = _retrieveBalance(prefs);
+    _klooicash = currentMainBalance;
 
     // Clear ephemeral scenario states
     await _clearSavedState();
@@ -935,9 +919,9 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     } else if (_isTryAgain) {
       // single tryAgain attempt
       if (_klooicash > 0) {
-        finalMessage = "Try Again attempt ended with leftover money. Your main balance reverts.\n\n$feedback";
+        finalMessage = "Try Again attempt ended with leftover money. Your main balance has been updated.\n\n$feedback";
       } else {
-        finalMessage = "Try Again attempt ended with no leftover money. Balance reverts.\n\n$feedback";
+        finalMessage = "Try Again attempt ended with no leftover money. Your main balance has been updated.\n\n$feedback";
       }
     } else {
       // Replay
