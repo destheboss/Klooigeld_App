@@ -1,9 +1,11 @@
+// lib/features/scenarios/buy_now_pay_later_scenario_screen.dart
 import 'dart:async';
 import 'dart:convert';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart'; // for debugPrint
+
 import 'package:backend/theme/app_theme.dart';
 import 'buy_now_pay_later_scenario_data.dart';
 import 'models/scenario_model.dart';
@@ -13,6 +15,34 @@ import 'widgets/scenario_message_bubble.dart';
 import 'widgets/scenario_choices_list.dart';
 import 'widgets/custom_dialog.dart';
 import '../../../screens/(rewards)/rewards_shop_screen.dart';
+
+/// Simple model for scenario transactions, matching the JSON structure used in the shop screen.
+/// Updated to allow "Pending" date for BNPL transactions.
+class TransactionRecord {
+  final String description;   // e.g. "Concert Ticket", "Phone Repair", "BNPL - 700K Owed", etc.
+  final int amount;           // negative for purchases, positive for income, or actual cost for BNPL
+  final String date;          // stored as 'YYYY-MM-DD' or "Pending"
+
+  TransactionRecord({
+    required this.description,
+    required this.amount,
+    required this.date,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'description': description,
+        'amount': amount,
+        'date': date,
+      };
+
+  factory TransactionRecord.fromJson(Map<String, dynamic> json) {
+    return TransactionRecord(
+      description: json['description'],
+      amount: json['amount'],
+      date: json['date'],
+    );
+  }
+}
 
 class BuyNowPayLaterScenarioScreen extends StatefulWidget {
   const BuyNowPayLaterScenarioScreen({Key? key}) : super(key: key);
@@ -38,11 +68,11 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
   bool _scenarioCompleted = false;   // True once we reach the final scenario step
   bool _showNextButton = false;
 
-  bool _scenarioFirstTime = true;    // True on first-ever completion
-  bool _resumed = false;             // If user resumed partial progress (first attempt)
+  bool _scenarioFirstTime = true;    // True on the first scenario completion
+  bool _resumed = false;             // If user resumed partial progress
   bool _tryAgainEnabled = true;      // True if user can do the single "Try Again"
-  bool _isTryAgain = false;          // True if the user is currently in that single "Try Again" run
-  bool _isReplay = false;            // True if scenario is in ephemeral replay mode (after try again is consumed)
+  bool _isTryAgain = false;          // True if user is currently in that single "Try Again" run
+  bool _isReplay = false;            // True if scenario is in ephemeral replay mode
 
   int _bestScore = 0;
 
@@ -52,11 +82,11 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
   String _username = "You";
   String? _avatarImagePath;
 
-  // Persist user choices for final feedback after resume:
+  // Persist user choices for final feedback:
   final List<ScenarioChoice> _userChoices = [];
 
   //--- PURCHASE FLAGS ---
-  bool _flowersPurchased = false;  
+  bool _flowersPurchased = false;
   bool _chocolatesPurchased = false;
 
   final List<Color> _optionColors = [
@@ -67,6 +97,9 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
   ];
 
   bool _lastChoiceWasBNPL = false;
+
+  // --- Temporary Transactions ---
+  List<TransactionRecord> _temporaryTransactions = []; // NEW: Temporary list to accumulate transactions
 
   @override
   void initState() {
@@ -97,7 +130,6 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
   }
 
   /// Ensure scenario is marked complete if user leaves at the final step.
-  /// This addresses the back button / system gesture exit at final step.
   Future<bool> _onWillPop() async {
     debugPrint(
       "onWillPop called. "
@@ -152,47 +184,74 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     // If scenario was completed, future attempts are replays by default
     if (completedBefore) {
       _isReplay = true;
-      _tryAgainEnabled = false;  // "Try Again" is available only once, after first-time finish
+      _tryAgainEnabled = false; // "Try Again" is only once, after first-time finish
+      debugPrint("Scenario already completed before. Entering replay mode.");
     } else {
       _isReplay = false;
     }
 
-    // Check if a try-again run was previously in progress:
+    // Check if a try-again run was previously in progress
     bool previouslyInTryAgain = prefs.getBool('scenario_buynowpaylater_isTryAgain') ?? false;
     if (previouslyInTryAgain) {
-      // If the user was in the middle of Try Again, resume that state:
       _isTryAgain = true;
-      _isReplay = false;
-      _scenarioFirstTime = false; // Because scenario must have been completed once
+      _isReplay = false; // If we’re in try-again, it’s not ephemeral
+      _scenarioFirstTime = false;
       debugPrint("Resuming single Try Again attempt from SharedPreferences...");
     }
 
     // originalBalance
     if (!completedBefore) {
-      // If not completed before, set original balance from current main balance
+      // First time scenario
       _originalBalance = currentMainBalance;
       await prefs.setInt('scenario_buynowpaylater_original_balance', _originalBalance);
+      debugPrint("Setting original balance to $_originalBalance.");
     } else {
-      // If completed, keep originalBalance stored from first run
+      // If completed, keep originalBalance from previous run
       _originalBalance = prefs.getInt('scenario_buynowpaylater_original_balance') ?? currentMainBalance;
+      debugPrint("Using original balance from previous run: $_originalBalance.");
     }
 
     // ephemeral data
     _accumulatedDeductions = prefs.getInt('scenario_buynowpaylater_accumulated_deductions') ?? 0;
     _klooicash = currentMainBalance - _accumulatedDeductions;
+    debugPrint("Current Klooicash: $_klooicash. Accumulated Deductions: $_accumulatedDeductions.");
 
     // Retrieve partial progress
     int savedStep = prefs.getInt('scenario_buynowpaylater_currentStep') ?? 0;
     List<String>? storedMessages = prefs.getStringList('scenario_buynowpaylater_chatMessages');
     List<String>? storedChoices = prefs.getStringList('scenario_buynowpaylater_userChoices');
+    List<String>? storedTempTransactions = prefs.getStringList('scenario_buynowpaylater_temp_transactions'); // NEW: Retrieve temporary transactions
 
-    // If not replay and partial progress found, ask to resume or restart
+    // Retrieve committed transactions
+    List<String>? storedCommittedTransactions = prefs.getStringList('user_transactions');
+
+    // Load existing committed transactions
+    List<TransactionRecord> committedTransactions = [];
+    if (storedCommittedTransactions != null && storedCommittedTransactions.isNotEmpty) {
+      committedTransactions = storedCommittedTransactions.map((e) {
+        final map = jsonDecode(e) as Map<String, dynamic>;
+        return TransactionRecord.fromJson(map);
+      }).toList();
+    }
+
+    // Load temporary transactions
+    if (storedTempTransactions != null && storedTempTransactions.isNotEmpty) {
+      _temporaryTransactions = storedTempTransactions.map((e) {
+        final map = jsonDecode(e) as Map<String, dynamic>;
+        return TransactionRecord.fromJson(map);
+      }).toList();
+      debugPrint("Loaded ${_temporaryTransactions.length} temporary transactions.");
+    }
+
+    // If partial progress found, ask to resume or restart
     if (!_isReplay && savedStep > 0 && storedMessages != null && storedMessages.isNotEmpty) {
       bool? resume = await _askResumeOrRestart();
       if (resume == true) {
         // Resume partial progress
         _currentScenarioIndex = savedStep;
         _resumed = true;
+        debugPrint("Resuming scenario from step $_currentScenarioIndex.");
+
         // Restore chat messages
         _chatMessages = storedMessages.map((m) => jsonDecode(m) as Map<String, dynamic>).toList();
 
@@ -209,6 +268,9 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
             ));
           }
         }
+
+        // Restore temporary transactions
+        // Already loaded above
       } else {
         // Full reset scenario from scratch
         _currentScenarioIndex = 0;
@@ -220,14 +282,14 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
         _showChoices = true;
         await prefs.setInt('scenario_buynowpaylater_accumulated_deductions', 0);
         await _clearSavedState();
+        debugPrint("Restarting scenario from scratch.");
       }
     } else {
-      // If we didn’t resume partial progress (fresh start / replay),
-      // we’ll just rely on the current scenario index which by default is 0.
-      // Clear chat if scenario is new or replay:
+      // If we didn’t resume partial progress
       if (_currentScenarioIndex == 0 || _isReplay) {
         _chatMessages.clear();
         _userChoices.clear();
+        debugPrint("Starting new scenario run.");
       } else if (storedMessages != null) {
         _chatMessages =
             storedMessages.map((m) => jsonDecode(m) as Map<String, dynamic>).toList();
@@ -253,6 +315,7 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     List<String> purchasedItems = prefs.getStringList('purchasedItems') ?? [];
     if (purchasedItems.contains('201')) _flowersPurchased = true;
     if (purchasedItems.contains('202')) _chocolatesPurchased = true;
+    debugPrint("Flowers purchased: $_flowersPurchased. Chocolates purchased: $_chocolatesPurchased.");
 
     // Restore UI flags
     _showNextButton = prefs.getBool('scenario_buynowpaylater_showNextButton') ?? false;
@@ -336,16 +399,19 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     await prefs.remove('scenario_buynowpaylater_userChoices');
     // We'll also remove the isTryAgain flag if we fully reset scenario:
     await prefs.remove('scenario_buynowpaylater_isTryAgain');
+    // NEW: Remove temporary transactions
+    await prefs.remove('scenario_buynowpaylater_temp_transactions');
+    debugPrint("Cleared saved scenario state.");
   }
 
-  /// This forcibly resets everything including original_balance, 
-  /// making it appear truly new.
+  /// This forcibly resets everything including original_balance.
   Future<void> _clearAllScenarioData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await _clearSavedState();
     await prefs.remove('scenario_buynowpaylater_original_balance');
     // Do not remove "scenario_buynowpaylater_completed" or "best_score_buynowpaylater"
     // unless you truly want to reset scenario completion state in the system.
+    debugPrint("Cleared all scenario data including original balance.");
   }
 
   // ------------------------------------------------------
@@ -367,12 +433,11 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     }
     await prefs.setInt('scenario_buynowpaylater_accumulated_deductions', _accumulatedDeductions);
     await prefs.setInt('scenario_buynowpaylater_tempBalance', _klooicash);
+    debugPrint("Saved balance state. Klooicash: $_klooicash, Deductions: $_accumulatedDeductions.");
   }
 
   Future<void> _saveCurrentStep() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    // If the user never proceeded to any step, no need to store
     if (_currentScenarioIndex < 0) return;
 
     await prefs.setInt('scenario_buynowpaylater_currentStep', _currentScenarioIndex);
@@ -380,7 +445,7 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     List<String> serializedMessages = _chatMessages.map((m) => jsonEncode(m)).toList();
     await prefs.setStringList('scenario_buynowpaylater_chatMessages', serializedMessages);
 
-    // Persist user choices so final feedback is accurate upon resume
+    // Persist user choices so final feedback is accurate
     List<String> serializedChoices = _userChoices.map((choice) {
       return jsonEncode({
         'text': choice.text,
@@ -398,6 +463,75 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
 
     // Also persist if we are in Try Again:
     await prefs.setBool('scenario_buynowpaylater_isTryAgain', _isTryAgain);
+
+    // NEW: Persist temporary transactions
+    List<String> serializedTempTransactions = _temporaryTransactions.map((tx) => jsonEncode(tx.toJson())).toList();
+    await prefs.setStringList('scenario_buynowpaylater_temp_transactions', serializedTempTransactions);
+
+    debugPrint("Saved current scenario step: $_currentScenarioIndex.");
+  }
+
+  // ------------------------------------------------------
+  //               TRANSACTION LOGGING
+  // ------------------------------------------------------
+
+  /// Accumulates transactions during the scenario run.
+  /// These are only committed to persistent storage upon scenario completion.
+  void _addTemporaryTransaction(String description, int amount, {bool isBNPL = false}) {
+    String dateString = isBNPL ? "Pending" : _getTodayDateString();
+    final newTx = TransactionRecord(
+      description: description,
+      amount: amount,
+      date: dateString,
+    );
+    _temporaryTransactions.insert(0, newTx);
+    debugPrint("Added temporary transaction: $description, Amount: $amount, Date: $dateString.");
+  }
+
+  String _getTodayDateString() {
+    final now = DateTime.now();
+    return "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+  }
+
+  /// Commit temporary transactions to persistent storage
+  Future<void> _commitTransactions() async {
+    if (_temporaryTransactions.isEmpty) return;
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final rawList = prefs.getStringList('user_transactions') ?? [];
+    final List<TransactionRecord> existing = rawList.map((e) {
+      final map = jsonDecode(e) as Map<String, dynamic>;
+      return TransactionRecord.fromJson(map);
+    }).toList();
+
+    // Add all temporary transactions
+    existing.insertAll(0, _temporaryTransactions);
+
+    // Persist
+    final newRawList = existing.map((tx) => jsonEncode(tx.toJson())).toList();
+    await prefs.setStringList('user_transactions', newRawList);
+    debugPrint("Committed ${_temporaryTransactions.length} transactions to persistent storage.");
+
+    // Clear temporary transactions
+    _temporaryTransactions.clear();
+
+    // Also remove temporary transactions from SharedPreferences
+    await prefs.remove('scenario_buynowpaylater_temp_transactions');
+    debugPrint("Cleared temporary transactions from SharedPreferences.");
+  }
+
+  /// Only log permanent transactions if this run is the first scenario run or the single "Try Again".
+  /// If _isReplay is true, scenario changes are ephemeral and should not be added to user_transactions.
+  /// NEW: BNPL transactions include actual cost with descriptive title
+  Future<void> _logTransaction(String description, int amount, {bool isBNPL = false}) async {
+    if (_isReplay) {
+      debugPrint("Replay mode: Skipping transaction logging for $description.");
+      return;
+    }
+
+    if (_isTryAgain || _scenarioFirstTime) {
+      _addTemporaryTransaction(description, amount, isBNPL: isBNPL);
+    }
   }
 
   // ------------------------------------------------------
@@ -414,34 +548,96 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     _addUserMessage(choice.dialogueText);
 
     // Only apply kChange if scenario is truly the first or the single "try again"
-    // (In replay mode, actualChange = 0).
     int actualChange = (_scenarioFirstTime || _isTryAgain) ? choice.kChange : 0;
 
-    if (actualChange < 0) {
-      _accumulatedDeductions += -actualChange;
-    } else {
-      _klooicash += actualChange;
+    // Decide if BNPL is used (those scenario choices contain "Klaro" text)
+    bool isBNPL = choice.text.toLowerCase().contains("klaro");
+
+    // Generate a descriptive transaction title (instead of the choice text)
+    /// NEW: More descriptive titles
+    String? transactionTitle;
+    if (choice.text.contains("Pay 20K")) {
+      transactionTitle = isBNPL ? "Concert Ticket (Klaro)" : "Concert Ticket";
+    } else if (choice.text.contains("Pay 70K")) {
+      transactionTitle = "Phone Repair";
+    } else if (choice.text.contains("new phone via Klaro")) {
+      transactionTitle = "New Phone (Klaro)";
+    } else if (choice.text.contains("flowers")) {
+      transactionTitle = "Flowers for Grandma";
+    } else if (choice.text.contains("chocolates")) {
+      transactionTitle = "Chocolates for Grandma";
     }
 
-    // Recompute ephemeral scenario balance
+    /// NEW: Avoid double-logging shop items:
+    /// If flowersPurchased or chocolatesPurchased is already true,
+    /// do not add a second scenario transaction for the same item.
+    bool skipIfOverlapPurchase = false;
+    if (transactionTitle == "Flowers for Grandma" && _flowersPurchased) {
+      skipIfOverlapPurchase = true;
+      debugPrint("Skipping transaction logging for Flowers as they are already purchased from the shop.");
+    } else if (transactionTitle == "Chocolates for Grandma" && _chocolatesPurchased) {
+      skipIfOverlapPurchase = true;
+      debugPrint("Skipping transaction logging for Chocolates as they are already purchased from the shop.");
+    }
+
+    // BNPL => record the actual cost with descriptive title
+    // Immediate pay => record normal transaction with negative amount
+    if (transactionTitle != null && !skipIfOverlapPurchase) {
+      if (isBNPL) {
+        /// BNPL transaction includes the actual cost
+        if (transactionTitle.contains("Concert Ticket")) {
+          await _logTransaction("Concert Ticket (Klaro)", -20, isBNPL: true);
+        } else if (transactionTitle.contains("New Phone (Klaro)")) {
+          await _logTransaction("New Phone (Klaro)", -700, isBNPL: true);
+        }
+      } else {
+        /// Regular transaction
+        await _logTransaction(transactionTitle, actualChange);
+      }
+    }
+
+    // Negative => user paying for something; positive => user gain
+    if (actualChange < 0) {
+      _accumulatedDeductions += -actualChange;
+      debugPrint("Applied deduction of ${-actualChange}. Total deductions: $_accumulatedDeductions.");
+    } else if (actualChange > 0) {
+      _klooicash += actualChange;
+      debugPrint("Applied gain of $actualChange. New Klooicash balance: $_klooicash.");
+      /// If this is a direct positive scenario choice (like grandma reward),
+      /// log that as well, provided it's not overlapping shop transaction.
+      if (transactionTitle != null && !skipIfOverlapPurchase) {
+        await _logTransaction("Grandma Reward", actualChange);
+      }
+    }
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     int mainBalance = _retrieveBalance(prefs);
     _klooicash = mainBalance - _accumulatedDeductions;
+    debugPrint("Recomputed Klooicash: $_klooicash.");
 
     // BNPL reminder
-    _lastChoiceWasBNPL = choice.text.contains("Klaro");
+    _lastChoiceWasBNPL = isBNPL;
 
-    // Show outcome message
+    // Show outcome message (+/-)
     _addOutcomeMessage(choice.outcome, choice.kChange);
 
-    // Track user choices
+    // Track user choice
     _userChoices.add(choice);
 
-    // Grandma synergy only if first attempt OR single tryAgain
-    if ((_scenarioFirstTime || _isTryAgain) && choice.text.contains("flowers")) {
-      _klooicash += 30;
-    } else if ((_scenarioFirstTime || _isTryAgain) && choice.text.contains("chocolates")) {
-      _klooicash += 15;
+    // Additional synergy logic: Grandma synergy (30K or 15K)
+    // The code below is specifically awarding the grandma reward:
+    //  - Flowers => +30K
+    //  - Chocolates => +15K
+    if ((_scenarioFirstTime || _isTryAgain)) {
+      if (choice.text.contains("flowers")) {
+        _klooicash += 30;
+          await _logTransaction("Grandma Reward", 30);
+          debugPrint("Grandma rewarded 30K for flowers.");
+      } else if (choice.text.contains("chocolates")) {
+        _klooicash += 15;
+          await _logTransaction("Grandma Reward", 15);
+          debugPrint("Grandma rewarded 15K for chocolates.");
+      }
     }
 
     await _saveBalanceState();
@@ -471,16 +667,20 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
       _scenarioCompleted = true;
       setState(() {});
       _showEndScenarioFeedbackInChat();
+      debugPrint("Reached end of scenario. Preparing to commit transactions.");
+      await _commitTransactions(); // NEW: Commit all transactions at the end
     }
   }
 
   Future<void> _showBNPLReminder() async {
     String reminder = "Keep track of what you owe Klaro!";
-    if (_userChoices.any((c) => c.text.contains("ticket via Klaro"))) {
+    if (_userChoices.any((c) => c.text.contains("Concert Ticket (Klaro)"))) {
       reminder = "Reminder: You need to pay Klaro for the concert ticket soon!";
-    } else if (_userChoices.any((c) => c.text.contains("new phone via Klaro"))) {
+    } else if (_userChoices.any((c) => c.text.contains("New Phone (Klaro)"))) {
       reminder = "Reminder: Your phone bill via Klaro (700K) is due later!";
     }
+
+    debugPrint("Showing BNPL reminder: $reminder");
 
     bool? result = await showDialog<bool>(
       context: context,
@@ -514,32 +714,32 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
   //         COMPLETION, TRY AGAIN, REPLAY
   // ------------------------------------------------------
 
-  /// Called when the user taps "Done" on the final screen 
-  /// or if the user navigates away after the final step.
   Future<void> _completeScenario() async {
     debugPrint("Completing scenario... isTryAgain=$_isTryAgain, scenarioFirstTime=$_scenarioFirstTime");
-
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    // If truly the first scenario completion (not isTryAgain)
     if (_scenarioFirstTime && !_isTryAgain) {
+      // first real completion
       debugPrint("First real completion. Mark scenario as done, allow Try Again once.");
       if (_klooicash > 0) {
         int unlockedIndex = prefs.getInt('unlockedLevelIndex') ?? 0;
         if (unlockedIndex < 1) {
           await prefs.setInt('unlockedLevelIndex', 1);
+          debugPrint("Unlocked level index updated to 1.");
         }
       }
       if (_klooicash > _bestScore) {
         _bestScore = _klooicash;
         await prefs.setInt('best_score_buynowpaylater', _bestScore);
+        debugPrint("Best score updated to $_bestScore.");
       }
 
-      // Mark scenario done
       await prefs.setBool('scenario_buynowpaylater_completed', true);
+      debugPrint("Marked scenario as completed.");
 
       // Apply final Klooicash to main
       await prefs.setInt('klooicash', _klooicash);
+      debugPrint("Updated main Klooicash balance to $_klooicash.");
 
       // Clear ephemeral
       await _clearSavedState();
@@ -549,51 +749,52 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
       _tryAgainEnabled = true;
       _isReplay = false;
     } 
-    // If the user is currently on their single "Try Again" run
     else if (_isTryAgain) {
+      // single tryAgain attempt
       debugPrint("Completing single 'Try Again' attempt. Marking scenario complete again, ephemeral revert.");
-      // Make sure the scenario is recognized as complete:
       await prefs.setBool('scenario_buynowpaylater_completed', true);
 
-      // End the try-again attempt
-      // Revert ephemeral changes made only in "Try Again"
+      // revert ephemeral changes
       int currentMainBalance = prefs.getInt('klooicash') ?? _originalBalance;
       if (currentMainBalance != _originalBalance) {
         await prefs.setInt('klooicash', _originalBalance);
+        debugPrint("Reverted main balance from $currentMainBalance to $_originalBalance.");
       }
       _klooicash = _originalBalance;
 
       _accumulatedDeductions = 0;
       await prefs.setInt('scenario_buynowpaylater_accumulated_deductions', 0);
+      debugPrint("Reset accumulated deductions to $_accumulatedDeductions.");
 
       // revert ephemeral purchases made during "try again"
       List<String> permanentlyPurchased = prefs.getStringList('purchasedItems') ?? [];
       if (!permanentlyPurchased.contains('201')) {
         _flowersPurchased = false;
         await prefs.setBool('scenario_buynowpaylater_flowersPurchased', false);
+        debugPrint("Reverted flowersPurchased to $_flowersPurchased.");
       }
       if (!permanentlyPurchased.contains('202')) {
         _chocolatesPurchased = false;
         await prefs.setBool('scenario_buynowpaylater_chocolatesPurchased', false);
+        debugPrint("Reverted chocolatesPurchased to $_chocolatesPurchased.");
       }
 
-      // Clear ephemeral states
       await _clearSavedState();
-      // Also set the isTryAgain flag to false, so user cannot do it again:
       await prefs.setBool('scenario_buynowpaylater_isTryAgain', false);
+      debugPrint("Cleared try-again state.");
 
-      _tryAgainEnabled = false; // consumed the single "Try Again"
+      _tryAgainEnabled = false; 
       _isTryAgain = false;
       _scenarioFirstTime = false; 
-      _isReplay = true; // future attempts are replays
+      _isReplay = true; // future attempts become replays
     }
-    // If scenario is already done and we're in replay mode
     else {
-      debugPrint("Scenario replay or subsequent attempt completion. Ephemeral revert, scenario remains completed in prefs.");
-      // ephemeral revert
+      // Scenario replay or subsequent attempt completion. Ephemeral revert.
+      debugPrint("Scenario replay completion. Ephemeral revert, scenario remains completed in prefs.");
       int currentMainBalance = prefs.getInt('klooicash') ?? _originalBalance;
       if (currentMainBalance != _originalBalance) {
         await prefs.setInt('klooicash', _originalBalance);
+        debugPrint("Reverted main balance from $currentMainBalance to $_originalBalance.");
       }
       _klooicash = _originalBalance;
 
@@ -602,19 +803,23 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
       await prefs.remove('scenario_buynowpaylater_showChoices');
       await prefs.remove('scenario_buynowpaylater_lastChoiceWasBNPL');
       await prefs.remove('scenario_buynowpaylater_userChoices');
+      debugPrint("Removed replay scenario state.");
 
       _accumulatedDeductions = 0;
       await prefs.setInt('scenario_buynowpaylater_accumulated_deductions', 0);
+      debugPrint("Reset accumulated deductions to $_accumulatedDeductions.");
 
-      // revert ephemeral purchases from replay
+      // revert ephemeral purchases
       List<String> permanentlyPurchased = prefs.getStringList('purchasedItems') ?? [];
       if (!permanentlyPurchased.contains('201')) {
         _flowersPurchased = false;
         await prefs.setBool('scenario_buynowpaylater_flowersPurchased', false);
+        debugPrint("Reverted flowersPurchased to $_flowersPurchased.");
       }
       if (!permanentlyPurchased.contains('202')) {
         _chocolatesPurchased = false;
         await prefs.setBool('scenario_buynowpaylater_chocolatesPurchased', false);
+        debugPrint("Reverted chocolatesPurchased to $_chocolatesPurchased.");
       }
     }
   }
@@ -626,12 +831,14 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     // Revert to original scenario balance
     _klooicash = _originalBalance;
     await prefs.setInt('klooicash', _originalBalance);
+    debugPrint("Set Klooicash to original balance: $_klooicash.");
 
     // Clear ephemeral scenario states
     await _clearSavedState();
 
     // Persist that we are now in a single "try again" run
     await prefs.setBool('scenario_buynowpaylater_isTryAgain', true);
+    debugPrint("Marked scenario as Try Again.");
 
     setState(() {
       _currentScenarioIndex = 0;
@@ -641,25 +848,23 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
       _userChoices.clear();
       _accumulatedDeductions = 0;
 
-      // Mark that we are now in the single "try again" run
       _isTryAgain = true;
       _isReplay = false;
     });
 
-    // Add the first message
     _addNPCMessage(
       _scenario.steps[_currentScenarioIndex].npcMessage,
       _scenario.steps[_currentScenarioIndex].npcName,
       animate: false,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottomWithAnimation());
+    debugPrint("Started Try Again scenario.");
   }
 
-  /// Replay after first-time + try again are done
   Future<void> _replayScenario() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-
     await _clearSavedState();
+    debugPrint("Cleared saved state for replay.");
 
     setState(() {
       _currentScenarioIndex = 0;
@@ -672,7 +877,7 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
       _showNextButton = false;
       _lastChoiceWasBNPL = false;
 
-      _scenarioFirstTime = false; 
+      _scenarioFirstTime = false;
       _isTryAgain = false;
       _isReplay = true;
     });
@@ -683,6 +888,7 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
       animate: false,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottomWithAnimation());
+    debugPrint("Started Replay scenario.");
   }
 
   // ------------------------------------------------------
@@ -694,8 +900,8 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     String feedback = _analyzeUserChoices();
     String finalMessage;
 
-    // If scenarioFirstTime and not in tryAgain => the first real completion
     if (_scenarioFirstTime && !_isTryAgain) {
+      // first real completion
       if (_klooicash > 0) {
         finalMessage = "You finished with some money left. Good job!\n\n"
             "You have a one-time Try Again option if you want a different path.\n\n"
@@ -705,17 +911,15 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
             "You have a one-time Try Again. Good luck!\n\n"
             "$feedback";
       }
-    } 
-    // If user is currently in the single tryAgain attempt
-    else if (_isTryAgain) {
+    } else if (_isTryAgain) {
+      // single tryAgain attempt
       if (_klooicash > 0) {
         finalMessage = "Try Again attempt ended with leftover money. Your main balance reverts.\n\n$feedback";
       } else {
         finalMessage = "Try Again attempt ended with no leftover money. Balance reverts.\n\n$feedback";
       }
-    }
-    // Replay
-    else {
+    } else {
+      // Replay
       if (_klooicash > 0) {
         finalMessage = "Replay ended with leftover money, but it reverts to original.\n\n$feedback";
       } else {
@@ -724,9 +928,8 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     }
 
     _addFinalFeedbackMessage(finalMessage);
-
-    // Immediately save, so if user exits/resumes, they'll see final feedback
     _saveCurrentStep();
+    debugPrint("Displayed final feedback in chat.");
   }
 
   String _analyzeUserChoices() {
@@ -735,22 +938,20 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     }
 
     StringBuffer analysis = StringBuffer("Let’s look at your big choices:\n\n");
-
-    // Just examples referencing indices of scenario choices:
     if (_userChoices.length > 1) {
       var concertChoice = _userChoices[1].text;
       if (concertChoice.contains("Pay 20K now")) {
         analysis.writeln("- Concert: Paid 20K upfront. No future debt.");
-      } else if (concertChoice.contains("Use Klaro")) {
+      } else if (concertChoice.contains("Concert Ticket (Klaro)")) {
         analysis.writeln("- Concert: BNPL, short-term relief but future debt looming.");
       }
     }
 
     if (_userChoices.length > 3) {
       var phoneChoice = _userChoices[3].text;
-      if (phoneChoice.contains("Pay 70K now")) {
+      if (phoneChoice.contains("Phone Repair")) {
         analysis.writeln("- Phone: Paid 70K now, no big debt later.");
-      } else if (phoneChoice.contains("new phone via Klaro")) {
+      } else if (phoneChoice.contains("New Phone (Klaro)")) {
         analysis.writeln("- Phone: BNPL for a 700K phone, major debt risk later.");
       } else if (phoneChoice.contains("Keep it cracked")) {
         analysis.writeln("- Phone: No immediate cost, but ongoing risk of a broken phone fiasco.");
@@ -784,6 +985,7 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     if (animate) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottomWithAnimation());
     }
+    debugPrint("Added NPC message: $message");
   }
 
   void _addUserMessage(String message) {
@@ -794,11 +996,11 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     });
     setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottomWithAnimation());
+    debugPrint("Added User message: $message");
   }
 
   void _addOutcomeMessage(String outcome, int kChange) {
     String feedback = "";
-    // Show the (+/-) only if scenario is first attempt or in single tryAgain
     if ((_scenarioFirstTime || _isTryAgain) && kChange != 0) {
       feedback = kChange > 0 ? " (+$kChange)" : " ($kChange)";
     }
@@ -810,18 +1012,21 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     });
     setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottomWithAnimation());
+    debugPrint("Added outcome message: $finalMessage");
   }
 
   void _addDelimiter() {
     _chatMessages.add({"type": "delimiter"});
     setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottomWithAnimation());
+    debugPrint("Added delimiter in chat.");
   }
 
   void _addFinalFeedbackMessage(String feedback) {
     _chatMessages.add({"type": "outcome", "message": feedback});
     setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottomWithAnimation());
+    debugPrint("Added final feedback message: $feedback");
   }
 
   void _scrollToBottomWithAnimation() {
@@ -831,6 +1036,7 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
+      debugPrint("Scrolled to bottom of chat.");
     }
   }
 
@@ -846,6 +1052,7 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     ScaffoldMessenger.of(context)
       ..removeCurrentSnackBar()
       ..showSnackBar(snackBar);
+    debugPrint("Displayed alert: $message");
   }
 
   bool _shouldShowShop() {
@@ -854,7 +1061,7 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
   }
 
   Future<void> _openShop() async {
-    // We’ll pass _isReplay so the shop knows ephemeral vs permanent purchase
+    // Pass ephemeral flag if scenario is a replay
     final purchasedNow = await showModalBottomSheet<Set<int>>(
       context: context,
       isScrollControlled: true,
@@ -862,16 +1069,17 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
       builder: (context) {
         return RewardsShopScreen(
           isModal: true,
-          isEphemeral: _isReplay,  // <--- Pass ephemeral flag
-          initialCategoryId: 4,
+          isEphemeral: _isReplay,
+          initialCategoryId: 4, // Scenario-limited shop
           initialBalance: _klooicash,
           onClose: () {
             Navigator.pop(context, <int>{});
           },
           onKlooicashUpdate: (newBalance) {
             setState(() {
-              _klooicash = newBalance.toInt();
+              _klooicash = newBalance;
             });
+            debugPrint("Updated Klooicash from shop: $_klooicash.");
           },
         );
       },
@@ -881,12 +1089,12 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
 
     if (purchasedNow.contains(201)) {
       _flowersPurchased = true;
-      // If first or single tryAgain attempt => permanent. If replay => ephemeral only.
       if (!_isReplay) {
         List<String> permanent = prefs.getStringList('purchasedItems') ?? [];
         if (!permanent.contains('201')) {
           permanent.add('201');
           await prefs.setStringList('purchasedItems', permanent);
+          debugPrint("Flowers purchased from shop.");
         }
       }
     }
@@ -897,6 +1105,7 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
         if (!permanent.contains('202')) {
           permanent.add('202');
           await prefs.setStringList('purchasedItems', permanent);
+          debugPrint("Chocolates purchased from shop.");
         }
       }
     }
@@ -942,13 +1151,12 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
             ScenarioHeader(
               onBack: () async {
                 if (_scenarioCompleted) {
-                  // If user is leaving from final scenario, ensure complete
                   await _completeScenario();
                 } else if (_currentScenarioIndex > 0) {
-                  // Save partial progress
                   await _saveCurrentStep();
                 }
                 Navigator.pop(context);
+                debugPrint("User navigated back from scenario screen.");
               },
               klooicash: _klooicash,
               progress: progress,
@@ -1035,6 +1243,7 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
                       onPressed: () async {
                         await _completeScenario();
                         Navigator.pop(context, true);
+                        debugPrint("User pressed Done button.");
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.klooigeldBlauw,
@@ -1060,7 +1269,7 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
                         ),
                       )
                     else if (_isTryAgain)
-                      // If user is in the single try again run, final screen shows only Done
+                      // If user is in the single try again run, final screen => only Done
                       const SizedBox()
                     else
                       // All other cases => Replay
@@ -1086,3 +1295,4 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     );
   }
 }
+

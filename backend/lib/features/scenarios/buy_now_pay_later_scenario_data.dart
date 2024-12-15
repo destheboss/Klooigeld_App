@@ -1,14 +1,11 @@
 // lib/features/scenarios/buy_now_pay_later_scenario_data.dart
+
 import 'models/scenario_model.dart';
 import 'models/scenario_step.dart';
 import 'models/scenario_choice.dart';
 
 ScenarioModel buildBuyNowPayLaterScenario() {
-  // Added dialogueText: what the user says after choosing the option.
-  // Keep language simple and relatable.
-  // BNPL reminders included as before.
-  // The scenario remains mostly the same, just with added dialogueText.
-
+  // BNPL scenario with clarifications for the transaction titles
   return ScenarioModel(steps: [
     // Step 0: Intro
     ScenarioStep(
@@ -30,13 +27,15 @@ ScenarioModel buildBuyNowPayLaterScenario() {
       npcMessage: "Hey 😺😺 Since you asked, I got us tickets for that band you love — only 20K! Can you pay me now, or wanna use Klaro and deal with it later?",
       choices: [
         ScenarioChoice(
-          text: "Pay 20K now.",
+          /// NEW: Descriptive title
+          text: "Pay 20K now",
           kChange: -20,
           outcome: "You pay 20K right away. No debt, just less cash.. for now..",
           dialogueText: "I’ll just pay now and get it over with. Can’t deal with future me hating present me"
         ),
         ScenarioChoice(
-          text: "Use Klaro (pay 20K later)",
+          /// NEW: BNPL route with descriptive title
+          text: "Use Klaro (Pay 20K later)",
           kChange: 0,
           outcome: "You skip the payment for now but owe Klaro 20K later. Future you can handle that",
           dialogueText: "Let’s just Klaro it. More cash for snacks tonight, right?"
@@ -64,13 +63,13 @@ ScenarioModel buildBuyNowPayLaterScenario() {
       npcMessage: "A repair stall offers to fix your phone for 70K 💰 Or Klaro can hook you up with a shiny new one, but you’ll owe 700K later. Or hey, keep it cracked and hope for the best 💥 What’s the move?",
       choices: [
         ScenarioChoice(
-          text: "Pay 70K now to fix it",
+          text: "Pay 70K now",
           kChange: -70,
           outcome: "You fix the phone and take the hit now.. but at least no debt, right?",
           dialogueText: "Alright, lemme just get this fixed. It hurts, but what's done is done.."
         ),
         ScenarioChoice(
-          text: "Get a new phone via Klaro (700K later)",
+          text: "Get a new phone via Klaro",
           kChange: 0,
           outcome: "You walk away with a new phone. But oof… you owe Klaro 700K now.. Big yikes 💀",
           dialogueText: "A new phone? Say less. I’ll deal with Klaro later... future me’s problem"

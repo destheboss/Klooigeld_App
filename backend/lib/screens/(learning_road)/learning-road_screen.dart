@@ -402,6 +402,7 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                             await prefs.remove('scenario_buynowpaylater_lastChoiceWasBNPL');
                             await prefs.remove('scenario_buynowpaylater_original_balance');
                             await prefs.remove('scenario_buynowpaylater_accumulated_deductions');
+                            await prefs.remove('scenario_buynowpaylater_temp_transactions');
                           }
 
                           // Check if BNPL tips have been read

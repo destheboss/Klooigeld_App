@@ -84,7 +84,7 @@ class CustomDialog extends StatelessWidget {
               const SizedBox(height: 24),
               // Actions
               Row(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize: MainAxisSize.max,
                 mainAxisAlignment: actionsAlignment,
                 children: actions.map((action) => Flexible(child: action)).toList(),
               ),

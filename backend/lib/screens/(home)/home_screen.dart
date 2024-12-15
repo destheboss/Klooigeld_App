@@ -16,7 +16,7 @@ import '../../screens/(tips)/tips_screen.dart';
 class TransactionRecord {
   final String description;
   final int amount;
-  final String date; // stored as 'YYYY-MM-DD'
+  final String date; // Can be YYYY-MM-DD or "Pending"
 
   TransactionRecord({
     required this.description,
@@ -58,10 +58,11 @@ class HomeScreenState extends State<HomeScreen> {
     super.initState();
     _usernameFuture = _getUsername();
     _klooicashFuture = _getKlooicash();
-    _loadTransactions();
+    _loadTransactions(); // Load once at startup
   }
 
   /// Reload transactions each time the HomeScreen is shown
+  /// This ensures the transaction list updates instantly upon returning.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -102,13 +103,17 @@ class HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  /// Helper method to format the stored YYYY-MM-DD into "March 12" etc.
+  /// Helper method to format the stored date:
+  /// If date is "Pending", return "Pending" directly.
+  /// Otherwise parse YYYY-MM-DD and format as "Month d".
   String _formatDate(String dateStr) {
+    if (dateStr.toLowerCase() == "pending") {
+      /// NEW: "Pending" placeholder for BNPL or future-due transactions
+      return "Pending";
+    }
     try {
-      final parsed = DateTime.parse(dateStr); 
-      // e.g. "2024-12-15" -> DateTime(2024, 12, 15)
-      return DateFormat("MMMM d").format(parsed); 
-      // e.g. "December 15"
+      final parsed = DateTime.parse(dateStr);
+      return DateFormat("MMMM d").format(parsed);
     } catch (e) {
       // Fallback if parsing fails
       return dateStr;
@@ -323,8 +328,11 @@ class HomeScreenState extends State<HomeScreen> {
                         CustomCard(
                           backgroundColor: AppTheme.klooigeldPaars,
                           shadowColor: Colors.black26,
-                          onTap: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const TipsScreen()));
+                          onTap: () async {
+                            // When returning from TipsScreen, reload transactions to reflect any changes.
+                            await Navigator.push(context, MaterialPageRoute(builder: (context) => const TipsScreen()));
+                            _loadTransactions();
+                            setState(() {});
                           },
                           padding: const EdgeInsets.all(16.0),
                           child: Row(
@@ -351,11 +359,14 @@ class HomeScreenState extends State<HomeScreen> {
                               child: CustomCard(
                                 backgroundColor: AppTheme.klooigeldBlauw,
                                 shadowColor: Colors.black26,
-                                onTap: () {
-                                  Navigator.push(
+                                onTap: () async {
+                                  // Refresh upon returning from the scenario screen
+                                  await Navigator.push(
                                     context,
                                     MaterialPageRoute(builder: (context) => LearningRoadScreen()),
                                   );
+                                  _loadTransactions();
+                                  setState(() {});
                                 },
                                 padding: const EdgeInsets.all(16.0),
                                 child: Column(
@@ -469,13 +480,14 @@ class HomeScreenState extends State<HomeScreen> {
                             separatorBuilder: (context, index) => const Divider(),
                             itemBuilder: (context, index) {
                               final tx = _transactions[index];
-                              final sign = tx.amount >= 0 ? '+' : '';
-                              final formattedAmount = '$sign${tx.amount} K'; // e.g. +30 K or -70 K
+                              final sign = tx.amount > 0 ? '+' : (tx.amount < 0 ? '-' : '');
+                              /// If it's a pending BNPL transaction with amount=0,
+                              /// we still show "0 K" to clarify that the real payment is pending.
+                              final formattedAmount = tx.amount != 0 ? '$sign${tx.amount.abs()} K' : '0 K';
 
                               return TransactionTile(
                                 description: tx.description,
                                 amount: formattedAmount,
-                                // Format date from "YYYY-MM-DD" to "March 12"
                                 date: _formatDate(tx.date),
                               );
                             },
