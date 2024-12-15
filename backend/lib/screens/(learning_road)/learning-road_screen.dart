@@ -24,48 +24,55 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
   late SharedPreferences _prefs;
   bool _isLoading = true;
 
-  List<Map<String, dynamic>> stops = [
+  // Updated stops list with optional 'screen' field
+  final List<Map<String, dynamic>> stops = [
     {
       "id": 1,
       "icon": Icons.credit_card,
       "status": "locked",
       "title": "Buy Now, Pay Later",
-      "info": "Today's choices impact your finances. Test how you handle payment delays"
+      "info": "Today's choices impact your finances. Test how you handle payment delays",
+      "screen": const BuyNowPayLaterScenarioScreen(),
     },
     {
       "id": 2,
       "icon": Icons.lock,
       "status": "locked",
       "title": "Saving",
-      "info": "Learn the importance of saving money and explore strategies to build financial security."
+      "info": "Learn the importance of saving money and explore strategies to build financial security.",
+      "screen": null, // Screen not implemented yet
     },
     {
       "id": 3,
       "icon": Icons.lock,
       "status": "locked",
       "title": "Gambling Basics",
-      "info": "Explore the concept of gambling, its risks, and how to maintain responsible habits."
+      "info": "Explore the concept of gambling, its risks, and how to maintain responsible habits.",
+      "screen": null,
     },
     {
       "id": 4,
       "icon": Icons.lock,
       "status": "locked",
       "title": "Insurances",
-      "info": "Understand the purpose of insurance and the basics of different insurance types."
+      "info": "Understand the purpose of insurance and the basics of different insurance types.",
+      "screen": null,
     },
     {
       "id": 5,
       "icon": Icons.lock,
       "status": "locked",
       "title": "Loans",
-      "info": "Learn how loans work, their costs, and how to borrow responsibly."
+      "info": "Learn how loans work, their costs, and how to borrow responsibly.",
+      "screen": null,
     },
     {
       "id": 6,
       "icon": Icons.lock,
       "status": "locked",
       "title": "Investing",
-      "info": "Discover the fundamentals of investing and how to grow wealth over time."
+      "info": "Discover the fundamentals of investing and how to grow wealth over time.",
+      "screen": null,
     },
   ];
 
@@ -375,7 +382,7 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
     return true;
   }
 
-  void _showLevelDialog(String title, IconData icon, String info) async {
+  void _showLevelDialog(String title, IconData icon, String info, Widget? screen) async {
     bool isBuyNowPayLaterCompleted = false;
 
     // Check if BNPL was previously completed
@@ -457,16 +464,7 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                           // If BNPL scenario was completed, user will "PLAY AGAIN" or attempt a single "TRY AGAIN"
                           if (isBuyNowPayLaterCompleted) {
                             // Clear scenario ephemeral progress to start a fresh replay / try again
-                            SharedPreferences prefs = await SharedPreferences.getInstance();
-                            await prefs.remove('scenario_buynowpaylater_chatMessages');
-                            await prefs.remove('scenario_buynowpaylater_tempBalance');
-                            await prefs.remove('scenario_buynowpaylater_currentStep');
-                            await prefs.remove('scenario_buynowpaylater_showNextButton');
-                            await prefs.remove('scenario_buynowpaylater_showChoices');
-                            await prefs.remove('scenario_buynowpaylater_lastChoiceWasBNPL');
-                            await prefs.remove('scenario_buynowpaylater_original_balance');
-                            await prefs.remove('scenario_buynowpaylater_accumulated_deductions');
-                            await prefs.remove('scenario_buynowpaylater_temp_transactions');
+                            await _clearBuyNowPayLaterProgress();
                           }
 
                           // Check if BNPL tips have been read
@@ -478,12 +476,28 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                             MaterialPageRoute(
                               builder: (context) => const BuyNowPayLaterScenarioScreen(),
                             ),
-                          ).then((_) {
+                          ).then((result) {
                             // After returning from the scenario screen, refresh unlocked levels
-                            _refreshUnlockedLevels();
+                            if (result == true) {
+                              _refreshUnlockedLevels();
+                            }
+                          });
+                        } else if (screen != null) {
+                          // Navigate to the associated screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => screen,
+                            ),
+                          ).then((result) {
+                            // After returning from the screen, refresh unlocked levels
+                            if (result == true) {
+                              _refreshUnlockedLevels();
+                            }
                           });
                         } else {
-                          // Future scenario screens
+                          // Show level in development overlay
+                          _showDevelopmentOverlay();
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -493,8 +507,117 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                       ),
                       // If scenario was completed, display "PLAY AGAIN", else "PLAY"
                       child: Text(
-                        isBuyNowPayLaterCompleted ? "PLAY AGAIN" : "PLAY",
+                        title == "Buy Now, Pay Later"
+                            ? (isBuyNowPayLaterCompleted ? "PLAY AGAIN" : "PLAY")
+                            : "PLAY",
                         style: const TextStyle(
+                          fontFamily: AppTheme.neighbor,
+                          color: AppTheme.klooigeldRoze,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _clearBuyNowPayLaterProgress() async {
+    // Clear scenario ephemeral progress to start a fresh replay / try again
+    await _prefs.remove('scenario_buynowpaylater_chatMessages');
+    await _prefs.remove('scenario_buynowpaylater_tempBalance');
+    await _prefs.remove('scenario_buynowpaylater_currentStep');
+    await _prefs.remove('scenario_buynowpaylater_showNextButton');
+    await _prefs.remove('scenario_buynowpaylater_showChoices');
+    await _prefs.remove('scenario_buynowpaylater_lastChoiceWasBNPL');
+    await _prefs.remove('scenario_buynowpaylater_original_balance');
+    await _prefs.remove('scenario_buynowpaylater_accumulated_deductions');
+    await _prefs.remove('scenario_buynowpaylater_temp_transactions');
+  }
+
+  void _showDevelopmentOverlay() {
+    showDialog(
+      context: context,
+      builder: (context) => AnimatedDialog(
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(16),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Image.asset(
+                'assets/images/learning_road/level_info_container.png',
+                width: MediaQuery.of(context).size.width * 0.95,
+                fit: BoxFit.contain,
+              ),
+              Positioned(
+                top: 20,
+                right: 20,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: klooigeldBlauw,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: const Icon(
+                      Icons.close,
+                      color: klooigeldRoze,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 40.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.construction,
+                      size: 50,
+                      color: klooigeldBlauw,
+                    ),
+                    const SizedBox(height: 5),
+                    const Text(
+                      "Level in Development",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: klooigeldBlauw,
+                        fontFamily: AppTheme.neighbor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    const Text(
+                      "This level is currently under development. Please check back later!",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: AppTheme.neighbor,
+                        fontWeight: FontWeight.w500,
+                        color: klooigeldBlauw,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: klooigeldBlauw,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text(
+                        "OK",
+                        style: TextStyle(
                           fontFamily: AppTheme.neighbor,
                           color: AppTheme.klooigeldRoze,
                         ),
@@ -612,6 +735,7 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                                                 stops[i]['title'],
                                                 stops[i]['icon'],
                                                 stops[i]['info'],
+                                                stops[i]['screen'],
                                               );
                                             } else {
                                               _showLockedMessage();
