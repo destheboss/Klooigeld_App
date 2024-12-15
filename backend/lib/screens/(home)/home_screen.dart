@@ -473,25 +473,31 @@ class HomeScreenState extends State<HomeScreen> {
                             ),
                           )
                         else
-                          ListView.separated(
-                            physics: const NeverScrollableScrollPhysics(),
-                            shrinkWrap: true,
-                            itemCount: _transactions.length,
-                            separatorBuilder: (context, index) => const Divider(),
-                            itemBuilder: (context, index) {
-                              final tx = _transactions[index];
-                              final sign = tx.amount > 0 ? '+' : (tx.amount < 0 ? '-' : '');
-                              /// If it's a pending BNPL transaction with amount=0,
-                              /// we still show "0 K" to clarify that the real payment is pending.
-                              final formattedAmount = tx.amount != 0 ? '$sign${tx.amount.abs()} K' : '0 K';
+                          // Refactored Transaction List with Limited Height and Scrollability
+                          SizedBox(
+                            // Assuming each TransactionTile has a height of approximately 70 pixels
+                            height: _transactions.length > 3 ? 3 * 70.0 + 2 * 1.0 : _transactions.length * 70.0,
+                            child: ListView.separated(
+                              physics: _transactions.length > 3
+                                  ? const AlwaysScrollableScrollPhysics()
+                                  : const NeverScrollableScrollPhysics(),
+                              itemCount: _transactions.length,
+                              separatorBuilder: (context, index) => const Divider(height: 15.0),
+                              itemBuilder: (context, index) {
+                                final tx = _transactions[index];
+                                final sign = tx.amount > 0 ? '+' : (tx.amount < 0 ? '-' : '');
+                                /// If it's a pending BNPL transaction with amount=0,
+                                /// we still show "0 K" to clarify that the real payment is pending.
+                                final formattedAmount = tx.amount != 0 ? '$sign${tx.amount.abs()} K' : '0 K';
 
-                              return TransactionTile(
-                                description: tx.description,
-                                amount: formattedAmount,
-                                date: _formatDate(tx.date),
+                                return TransactionTile(
+                                  description: tx.description,
+                                  amount: formattedAmount,
+                                  date: _formatDate(tx.date),
                               );
                             },
                           ),
+                        ),
                       ],
                     ),
                   ],
@@ -504,3 +510,4 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
