@@ -402,6 +402,10 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     // NEW: Remove temporary transactions
     await prefs.remove('scenario_buynowpaylater_temp_transactions');
     debugPrint("Cleared saved scenario state.");
+
+    // Also clear in-memory temporary transactions
+    _temporaryTransactions.clear();
+    debugPrint("Cleared in-memory temporary transactions.");
   }
 
   /// This forcibly resets everything including original_balance.
@@ -850,6 +854,10 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
 
       _isTryAgain = true;
       _isReplay = false;
+
+      // Clear in-memory temporary transactions to ensure isolation
+      _temporaryTransactions.clear();
+      debugPrint("Cleared in-memory temporary transactions for Try Again.");
     });
 
     _addNPCMessage(
@@ -880,6 +888,10 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
       _scenarioFirstTime = false;
       _isTryAgain = false;
       _isReplay = true;
+
+      // Clear in-memory temporary transactions to ensure isolation
+      _temporaryTransactions.clear();
+      debugPrint("Cleared in-memory temporary transactions for Replay.");
     });
 
     _addNPCMessage(
@@ -1295,4 +1307,3 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     );
   }
 }
-
