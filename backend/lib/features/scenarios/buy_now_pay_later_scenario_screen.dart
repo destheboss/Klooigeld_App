@@ -686,8 +686,8 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     String reminder = "Keep track of what you owe Klaro!";
     if (_userChoices.any((c) => c.text.contains("Concert Ticket (Klaro)"))) {
       reminder = "Reminder: You need to pay Klaro for the concert ticket soon!";
-    } else if (_userChoices.any((c) => c.text.contains("New Phone (Klaro)"))) {
-      reminder = "Reminder: Your phone bill via Klaro (700K) is due later!";
+    } else if (_userChoices.any((c) => c.text.contains("Get a new phone via Klaro"))) {
+      reminder = "**Reminder**: Your phone bill via Klaro (**700K**) is due later!";
     }
 
     debugPrint("Showing BNPL reminder: $reminder");
@@ -964,13 +964,13 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
       // Concert step
       if (choice.text.contains("Pay 20K later")) {
         analysis.writeln(
-            "**🎶 Concert Ticket via Klaro** - Klaro let you enjoy the concert now, but now you're in debt for 20K");
+            "🎶  **Concert Ticket via Klaro** - Klaro let you enjoy the concert now, but now you're in debt for 20K");
         negativeChoices++;
         totalKChange += 20;
         bnplCount++;
       } else if (choice.text.contains("Pay 20K")) {
         analysis.writeln(
-            "**🎶 Concert Ticket** - You paid 20K upfront, keeping your finances clear of debt. Good move!");
+            "🎶  **Concert Ticket** - You paid 20K upfront, keeping your finances clear of debt. Good move!");
         positiveChoices++;
         totalKChange -= 20;
       }
@@ -978,18 +978,18 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
       // Phone decision step
       if (choice.text.contains("Pay 70K")) {
         analysis.writeln(
-            "📱 **Phone Repair** - You spent 70K to fix your phone without debt. A smart decision!");
+            "📱  **Phone Repair** - You spent 70K to fix your phone without debt. A smart decision!");
         positiveChoices++;
         totalKChange += 70;
       } else if (choice.text.contains("Klaro")) {
         analysis.writeln(
-            "*📱 *New Phone via Klaro** - You got a shiny new phone but racked up 700K in debt.. Ouch!");
+            "📱  **New Phone via Klaro** - You got a shiny new phone but racked up 700K in debt.. Ouch!");
         bnplCount++;
         negativeChoices++;
         totalKChange -= 700;
       } else if (choice.text.contains("Keep it cracked")) {
         analysis.writeln(
-            "📱 **Keep Phone Cracked** - You avoided spending money now, but it could cost more if it breaks again.. 💀");
+            "📱  **Keep Phone Cracked** - You avoided spending money now, but it could cost more if it breaks again.. 💀");
         negativeChoices++;
         totalKChange += 0; // Assuming no immediate financial impact
       }
@@ -997,12 +997,12 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
       // Grandma step
       if (choice.text.contains("flowers")) {
         analysis.writeln(
-            "🌸 **Flowers for Grandma** - You spent 10K but got 30K back.. a sweet investment with a nice net gain!");
+            "🌸  **Flowers for Grandma** - You spent 10K but got 30K back.. a sweet investment with a nice net gain!");
         positiveChoices++;
         totalKChange += 20;
       } else if (choice.text.contains("chocolates")) {
         analysis.writeln(
-            "🍫 **Chocolates for Grandma** - Spending 5K earned you 15K.. a delightful and profitable choice!");
+            "🍫  **Chocolates for Grandma** - Spending 5K earned you 15K.. a delightful and profitable choice!");
         positiveChoices++;
         totalKChange += 10;
       }
@@ -1015,27 +1015,27 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
 
 **Summary of Your Decisions:**
 
- ✅ **Good Choices:** $positiveChoices
- ❌ **Not-So-Good Choices:** $negativeChoices
- 💰 **Total Klooicash Change:** ${totalKChange > 0 ? '+' : ''}$totalKChange K
+ ✅  **Good Choices**: $positiveChoices
+ ❌  **Not-So-Good Choices**: $negativeChoices
+ 💰  **Net Financial Change**: ${totalKChange > 0 ? '+' : ''}$totalKChange K
 
 ''');
 
   // Dynamic concluding feedback based on choices
   if (bnplCount > 0 && negativeChoices > 0) {
     analysis.writeln(
-        "💡 **BNPL Note:** You used 'Buy Now, Pay Later' $bnplCount time(s). It's cool for instant access, but don't let debt sneak up on you! \n");
+        "💡  **BNPL Note:** You used 'Buy Now, Pay Later' $bnplCount time(s). It's cool for instant access, but don't let debt sneak up on you! \n");
   }
 
   if (positiveChoices > negativeChoices) {
     analysis.writeln(
-        "👍 **Awesome!** Your choices boosted your Klooicash. Keep it up to stay on top of your game!");
+        "👍  **Awesome!** Your choices boosted your Klooicash. Keep it up to stay on top of your game!");
   } else if (negativeChoices > positiveChoices) {
     analysis.writeln(
-        "⚠️ **Heads Up!** Some choices hit your Klooicash. Try balancing short-term fun with long-term goals!");
+        "⚠️  **Heads Up!** Some choices hit your Klooicash. Try balancing short-term fun with long-term goals!");
   } else {
     analysis.writeln(
-        "🔄 **Neutral Moves:** You've made an equal number of good and bad decisions. Focus on leveling up your game!");
+        "🔄  **Neutral Moves:** You've made an equal number of good and bad decisions. Focus on leveling up your game!");
   }
 
   return analysis.toString();

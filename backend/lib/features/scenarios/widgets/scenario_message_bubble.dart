@@ -1,5 +1,3 @@
-// lib/features/scenarios/widgets/scenario_message_bubble.dart
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:backend/theme/app_theme.dart';
@@ -22,14 +20,16 @@ class ScenarioMessageBubble extends StatelessWidget {
             ? FileImage(File(avatarImagePath!)) as ImageProvider<Object>
             : const AssetImage('assets/images/default_user.png') as ImageProvider<Object>;
 
-    if (type == "npc") {
-      return _buildNPCMessage(msg);
-    } else if (type == "user") {
-      return _buildUserMessage(msg, userAvatar);
-    } else if (type == "outcome") {
-      return _buildOutcomeMessage(msg);
+    switch (type) {
+      case "npc":
+        return _buildNPCMessage(msg);
+      case "user":
+        return _buildUserMessage(msg, userAvatar);
+      case "outcome":
+        return _buildOutcomeMessage(msg);
+      default:
+        return const SizedBox.shrink();
     }
-    return const SizedBox.shrink();
   }
 
   Widget _buildNPCMessage(Map<String, dynamic> msg) {
@@ -139,7 +139,8 @@ class ScenarioMessageBubble extends StatelessWidget {
   Widget _formatMessageText(String message) {
     // Regular expressions to identify bold text and currency patterns
     final boldRegex = RegExp(r'\*\*(.*?)\*\*');
-    final currencyRegex = RegExp(r'(\d+)K');
+    // Updated regex to handle optional whitespace between number and 'K' (case-insensitive)
+    final currencyRegex = RegExp(r'(\d+)\s*[Kk]');
 
     List<InlineSpan> children = [];
     int currentIndex = 0;
@@ -151,12 +152,12 @@ class ScenarioMessageBubble extends StatelessWidget {
       // Text before the bold text
       if (match.start > currentIndex) {
         String normalText = message.substring(currentIndex, match.start);
-        children.addAll(_processCurrency(normalText, currencyRegex));
+        children.addAll(_processCurrency(normalText, currencyRegex, isBold: false));
       }
 
       // Bold text without the ** markers
       String boldText = match.group(1)!;
-      children.addAll(_processBoldAndCurrency(boldText, currencyRegex));
+      children.addAll(_processCurrency(boldText, currencyRegex, isBold: true));
 
       currentIndex = match.end;
     }
@@ -164,7 +165,7 @@ class ScenarioMessageBubble extends StatelessWidget {
     // Remaining text after the last bold text
     if (currentIndex < message.length) {
       String remainingText = message.substring(currentIndex);
-      children.addAll(_processCurrency(remainingText, currencyRegex));
+      children.addAll(_processCurrency(remainingText, currencyRegex, isBold: false));
     }
 
     return RichText(
@@ -173,43 +174,26 @@ class ScenarioMessageBubble extends StatelessWidget {
     );
   }
 
-  List<InlineSpan> _processCurrency(String text, RegExp currencyRegex) {
+  List<InlineSpan> _processCurrency(String text, RegExp currencyRegex, {required bool isBold}) {
     List<InlineSpan> spans = [];
     int lastMatchEnd = 0;
 
     for (final match in currencyRegex.allMatches(text)) {
       if (match.start > lastMatchEnd) {
-        spans.add(TextSpan(
-          text: text.substring(lastMatchEnd, match.start),
-          style: TextStyle(
-            fontFamily: AppTheme.neighbor,
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-            color: Colors.black,
-            height: 1.4,
-          ),
-        ));
+        String normalSegment = text.substring(lastMatchEnd, match.start);
+        spans.add(_createTextSpan(normalSegment, isBold));
       }
 
-      // Number before 'K'
+      // Number before 'K' or 'k'
       String number = match.group(1)!;
-      spans.add(TextSpan(
-        text: '$number\u{200B}',
-        style: TextStyle(
-          fontFamily: AppTheme.neighbor,
-          fontWeight: FontWeight.w500,
-          fontSize: 14,
-          color: Colors.black,
-          height: 1.4,
-        ),
-      ));
+      spans.add(_createTextSpan('$number\u{200B}', isBold));
 
       // Currency icon
       spans.add(
         WidgetSpan(
           alignment: PlaceholderAlignment.middle,
           child: Transform.translate(
-            offset: const Offset(0, -0.3),
+            offset: const Offset(0, -0.2),
             child: Image.asset('assets/images/currency.png', width: 10, height: 10),
           ),
         ),
@@ -220,82 +204,23 @@ class ScenarioMessageBubble extends StatelessWidget {
 
     // Text after the last currency match
     if (lastMatchEnd < text.length) {
-      spans.add(TextSpan(
-        text: text.substring(lastMatchEnd),
-        style: TextStyle(
-          fontFamily: AppTheme.neighbor,
-          fontWeight: FontWeight.w500,
-          fontSize: 14,
-          color: Colors.black,
-          height: 1.4,
-        ),
-      ));
+      String remainingText = text.substring(lastMatchEnd);
+      spans.add(_createTextSpan(remainingText, isBold));
     }
 
     return spans;
   }
 
-  List<InlineSpan> _processBoldAndCurrency(String text, RegExp currencyRegex) {
-    List<InlineSpan> spans = [];
-    int lastMatchEnd = 0;
-
-    Iterable<RegExpMatch> currencyMatches = currencyRegex.allMatches(text);
-
-    for (final match in currencyMatches) {
-      if (match.start > lastMatchEnd) {
-        spans.add(TextSpan(
-          text: text.substring(lastMatchEnd, match.start),
-          style: TextStyle(
-            fontFamily: AppTheme.neighbor,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: Colors.black,
-            height: 1.4,
-          ),
-        ));
-      }
-
-      // Number before 'K'
-      String number = match.group(1)!;
-      spans.add(TextSpan(
-        text: '$number\u{200B}',
-        style: TextStyle(
-          fontFamily: AppTheme.neighbor,
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-          color: Colors.black,
-          height: 1.4,
-        ),
-      ));
-
-      // Currency icon
-      spans.add(
-        WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: Transform.translate(
-            offset: const Offset(0, -0.3),
-            child: Image.asset('assets/images/currency.png', width: 10, height: 10),
-          ),
-        ),
-      );
-
-      lastMatchEnd = match.end;
-    }
-
-    // Text after the last currency match
-    if (lastMatchEnd < text.length) {
-      spans.add(TextSpan(
-        text: text.substring(lastMatchEnd),
-        style: TextStyle(
-          fontFamily: AppTheme.neighbor,
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-          color: Colors.black,
-          height: 1.4,
-        ),
-      ));
-    }
-
-    return spans;
+  TextSpan _createTextSpan(String text, bool isBold) {
+    return TextSpan(
+      text: text,
+      style: TextStyle(
+        fontFamily: AppTheme.neighbor,
+        fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+        fontSize: 14,
+        color: Colors.black,
+        height: 1.4,
+      ),
+    );
   }
 }
