@@ -1,3 +1,4 @@
+// lib/features/scenarios/widgets/scenario_header.dart
 import 'package:flutter/material.dart';
 import 'package:backend/theme/app_theme.dart';
 
@@ -15,7 +16,6 @@ class ScenarioHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Updated layout using Stack without fixed height to prevent overflow
     return SafeArea(
       child: Column(
         children: [
@@ -25,7 +25,6 @@ class ScenarioHeader extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Back Button aligned to the left
                 Align(
                   alignment: Alignment.centerLeft,
                   child: InkWell(
@@ -38,30 +37,15 @@ class ScenarioHeader extends StatelessWidget {
                         color: AppTheme.white,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: AppTheme.klooigeldBlauw, width: 2),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color.fromARGB(52, 0, 0, 0),
-                            offset: Offset(3, 0),
-                            spreadRadius: 1,
-                            blurRadius: 4,
-                          ),
-                        ],
                       ),
-                      child: const Icon(
-                        Icons.chevron_left_rounded,
-                        size: 30,
-                        color: AppTheme.klooigeldBlauw,
-                      ),
+                      child: const Icon(Icons.chevron_left_rounded, size: 30, color: AppTheme.klooigeldBlauw),
                     ),
                   ),
                 ),
-
-                // Title centered
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      'BUY NOW,',
+                    Text('BUY NOW,',
                       style: TextStyle(
                         fontFamily: AppTheme.titleFont,
                         fontSize: 28,
@@ -71,8 +55,7 @@ class ScenarioHeader extends StatelessWidget {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    Text(
-                      'PAY LATER',
+                    Text('PAY LATER',
                       style: TextStyle(
                         fontFamily: AppTheme.titleFont,
                         fontSize: 28,
@@ -84,12 +67,10 @@ class ScenarioHeader extends StatelessWidget {
                     ),
                   ],
                 ),
-
-                // Klooicash display aligned to the right
                 Align(
                   alignment: Alignment.centerRight,
                   child: Row(
-                    mainAxisSize: MainAxisSize.min, // Ensures minimal width
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         klooicash.toString(),
@@ -136,12 +117,7 @@ class _ProgressLinePainter extends CustomPainter {
     final double barHeight = 30.0;
     final double barRadius = barHeight / 2.0;
 
-    final barRect = Rect.fromLTWH(
-      0,
-      (size.height - barHeight) / 2,
-      size.width,
-      barHeight,
-    );
+    final barRect = Rect.fromLTWH(0, (size.height - barHeight) / 2, size.width, barHeight);
     final barRRect = RRect.fromRectAndRadius(barRect, Radius.circular(barRadius));
 
     Paint borderPaint = Paint()
@@ -159,12 +135,7 @@ class _ProgressLinePainter extends CustomPainter {
     // Fill portion
     final fillWidth = size.width * progress;
     if (fillWidth > 0) {
-      final fillRect = Rect.fromLTWH(
-        0,
-        (size.height - barHeight) / 2,
-        fillWidth,
-        barHeight,
-      );
+      final fillRect = Rect.fromLTWH(0, (size.height - barHeight) / 2, fillWidth, barHeight);
       final fillRRect = RRect.fromRectAndRadius(fillRect, Radius.circular(barRadius));
       canvas.drawRRect(fillRRect, fillPaint);
     }

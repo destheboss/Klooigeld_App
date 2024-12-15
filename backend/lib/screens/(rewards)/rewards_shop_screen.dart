@@ -1,5 +1,3 @@
-// screens/(rewards)/rewards_shop_screen.dart
-
 import 'dart:async';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +15,10 @@ class RewardsShopScreen extends StatefulWidget {
   final ValueChanged<int>? onKlooicashUpdate;
   final int? initialBalance;
 
+  /// Indicates whether this purchase session should be ephemeral (i.e., replay scenario).
+  /// If `true`, items bought will NOT be permanently stored in `purchasedItems`.
+  final bool isEphemeral;
+
   const RewardsShopScreen({
     super.key,
     this.isModal = false,
@@ -24,6 +26,7 @@ class RewardsShopScreen extends StatefulWidget {
     this.onClose,
     this.onKlooicashUpdate,
     this.initialBalance,
+    this.isEphemeral = false,
   });
 
   @override
@@ -53,6 +56,7 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     super.initState();
     _categories = _itemService.fetchCategories();
     _allItems = _itemService.fetchItems();
+
     if (widget.initialCategoryId != null) {
       _selectedCategory = _categories.firstWhere(
         (c) => c.id == widget.initialCategoryId,
@@ -60,8 +64,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
       );
     }
 
-    if (widget.isModal) {
-      // If isModal, e.g. a scenario sub-shop, load only category #4 (quest items) or whichever is relevant
+    // If this is a modal specifically for category #4 (quests), limit categories/items
+    if (widget.isModal && widget.initialCategoryId == 4) {
       _categories = _categories.where((c) => c.id == 4).toList();
       if (_categories.isNotEmpty) {
         _selectedCategory = _categories.first;
@@ -79,7 +83,7 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
   Future<void> _loadData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    // If launched from scenario with a custom "initialBalance," use that
+    // Use scenario-provided ephemeral balance if present, else normal balance
     if (widget.initialBalance != null) {
       _klooicash = widget.initialBalance!;
     } else {
@@ -93,6 +97,7 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
   }
 
   Future<bool> _onWillPop() async {
+    // Return the IDs of items purchased in *this* session
     Navigator.pop(context, _purchasedItems);
     return false;
   }
@@ -110,8 +115,10 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     setState(() {
       _filteredItems = _allItems.where((item) {
         final matchesName = item.name.toLowerCase().contains(query);
-        if (widget.isModal && item.categoryId != 4) {
-          // If scenario is specifically quest-related, only show category #4 items
+
+        // If scenario is specifically quest-related (isModal + categoryId=4),
+        // only show matching items from category #4
+        if (widget.isModal && widget.initialCategoryId == 4 && item.categoryId != 4) {
           return false;
         }
         final matchesCategory = category == null || item.categoryId == category.id;
@@ -148,35 +155,78 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     }
   }
 
+  /// Called when user confirms buying an item
   Future<void> _onBuyPressed() async {
     if (_selectedItemForPurchase == null) return;
     ShopItem item = _selectedItemForPurchase!;
 
-    // Deduct cost once from in-game or main balance
-    if (!_purchasedItems.contains(item.id)) {
-      _klooicash -= item.price;
-      _purchasedItems.add(item.id);
+    // Double-check if already purchased
+    if (_purchasedItems.contains(item.id)) {
+      _hidePurchaseOverlay();
+      return;
+    }
 
-      SharedPreferences prefs = await SharedPreferences.getInstance();
+    // Deduct from ephemeral or main balance
+    _klooicash -= item.price;
+
+    // Add to session’s purchased set
+    _purchasedItems.add(item.id);
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (!widget.isEphemeral) {
+      // If NOT ephemeral, store permanently
       List<String> storedItems = prefs.getStringList('purchasedItems') ?? [];
       storedItems.add(item.id.toString());
       await prefs.setStringList('purchasedItems', storedItems);
 
-      // Only update main klooicash if not from a scenario-specific session
+      // Also update main klooicash if no initialBalance override
       if (widget.initialBalance == null) {
         await prefs.setInt('klooicash', _klooicash);
       }
-
-      widget.onKlooicashUpdate?.call(_klooicash);
     }
+
+    // Notify scenario (if applicable) of updated balance
+    widget.onKlooicashUpdate?.call(_klooicash);
 
     _hidePurchaseOverlay();
     setState(() {});
   }
 
+  /// Shows the purchase overlay if item is not already purchased
   void _showPurchaseOverlay(ShopItem item) {
     if (_purchasedItems.contains(item.id)) {
-      // Already purchased
+      // Item already purchased -> show scaffold alert & skip overlay
+      ScaffoldMessenger.of(context).removeCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          duration: const Duration(seconds: 2),
+          content: Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppTheme.klooigeldRoze,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.klooigeldBlauw, width: 2),
+              ),
+              child: const Text(
+                "Item already purchased",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: AppTheme.neighbor,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.klooigeldBlauw,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
+        ),
+      );
       return;
     }
 
@@ -206,49 +256,29 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      if (widget.isModal)
-                        InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () {
-                            Navigator.pop(context, _purchasedItems);
-                          },
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: AppTheme.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.black, width: 2),
-                            ),
-                            child: const Icon(
-                              Icons.chevron_left_rounded,
-                              size: 30,
-                              color: AppTheme.nearlyBlack,
-                            ),
+                      // Close / back button
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          _unfocusSearch();
+                          Navigator.pop(context, _purchasedItems);
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppTheme.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.black, width: 2),
                           ),
-                        )
-                      else
-                        InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () {
-                            _unfocusSearch();
-                            Navigator.pop(context);
-                          },
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: AppTheme.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.black, width: 2),
-                            ),
-                            child: const Icon(
-                              Icons.chevron_left_rounded,
-                              size: 30,
-                              color: AppTheme.nearlyBlack,
-                            ),
+                          child: const Icon(
+                            Icons.chevron_left_rounded,
+                            size: 30,
+                            color: AppTheme.nearlyBlack,
                           ),
                         ),
+                      ),
+
                       Text(
                         'SHOP',
                         style: TextStyle(
@@ -257,7 +287,26 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                           color: AppTheme.nearlyBlack2,
                         ),
                       ),
-                      if (!widget.isModal)
+
+                      // If modal, show ephemeral balance
+                      if (widget.isModal)
+                        Row(
+                          children: [
+                            Text(
+                              _klooicash.toString(),
+                              style: TextStyle(
+                                fontFamily: AppTheme.neighbor,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 18,
+                                color: AppTheme.black,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Image.asset('assets/images/currency.png',
+                                width: 12, height: 20),
+                          ],
+                        )
+                      else
                         PopupMenuButton<int>(
                           onSelected: (value) {},
                           shape: RoundedRectangleBorder(
@@ -322,28 +371,13 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                               ),
                             ),
                           ),
-                        )
-                      else
-                        Row(
-                          children: [
-                            Text(
-                              _klooicash.toString(),
-                              style: TextStyle(
-                                fontFamily: AppTheme.neighbor,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 18,
-                                color: AppTheme.black,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Image.asset('assets/images/currency.png',
-                                width: 12, height: 20),
-                          ],
                         ),
                     ],
                   ),
+
                   const SizedBox(height: 0),
 
+                  // Category scrolling (only if not modal)
                   if (!widget.isModal)
                     SizedBox(
                       height: 100,
@@ -378,6 +412,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                     ),
 
                   const SizedBox(height: 16),
+
+                  // Search bar
                   Container(
                     height: 40,
                     decoration: BoxDecoration(
@@ -396,8 +432,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                               onChanged: _onSearchChanged,
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(
-                                    vertical: 8, horizontal: 16),
+                                contentPadding:
+                                    EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                               ),
                               style: TextStyle(
                                 fontFamily: AppTheme.neighbor,
@@ -421,8 +457,7 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                                     decoration: BoxDecoration(
                                       color: AppTheme.white,
                                       shape: BoxShape.circle,
-                                      border:
-                                          Border.all(color: Colors.black, width: 1.5),
+                                      border: Border.all(color: Colors.black, width: 1.5),
                                     ),
                                     child: const Icon(
                                       Icons.close,
@@ -439,8 +474,10 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 28),
 
+                  // Items grid
                   Expanded(
                     child: _filteredItems.isEmpty
                         ? Center(
@@ -470,6 +507,7 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                                 imagePath: item.imagePath,
                                 price: item.price,
                                 colors: item.colors,
+                                isPurchased: _purchasedItems.contains(item.id),
                                 onTap: () => _showPurchaseOverlay(item),
                               );
                             },
@@ -479,6 +517,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
               ),
             ),
           ),
+
+          // Purchase overlay (if an item is selected & not purchased yet)
           if (_showOverlay && _selectedItemForPurchase != null)
             PurchaseOverlay(
               itemName: _selectedItemForPurchase!.name,
@@ -498,6 +538,7 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     Widget content = _buildContent();
 
     if (widget.isModal) {
+      // Modal version with dark background
       return Material(
         color: Colors.black54,
         child: Center(
@@ -513,9 +554,13 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
         ),
       );
     } else {
+      // Full screen shop
       return GestureDetector(
         onTap: _unfocusSearch,
-        child: Scaffold(backgroundColor: AppTheme.nearlyWhite, body: content),
+        child: Scaffold(
+          backgroundColor: AppTheme.nearlyWhite,
+          body: content,
+        ),
       );
     }
   }

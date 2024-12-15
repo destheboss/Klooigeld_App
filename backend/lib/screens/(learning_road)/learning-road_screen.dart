@@ -115,13 +115,14 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
       unlockedIndex = 0;
     }
 
+    // Unlock icons for levels up to unlockedIndex
     for (int i = 0; i <= unlockedIndex && i < stops.length; i++) {
       stops[i]['status'] = 'unlocked';
       stops[i]['icon'] =
           i == 0 ? Icons.credit_card : financeIcons[(i - 1) % financeIcons.length];
     }
 
-    double initialValue = (unlockedIndex) / stops.length;
+    double initialValue = unlockedIndex / stops.length;
     initialProgress = initialValue;
 
     _iconPositionAnimation = Tween<double>(
@@ -201,7 +202,7 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
     );
   }
 
-  /// Inject the BNPL TIPS logic/design from the snippet:
+  /// BNPL TIPS CHECK
   Future<bool> _checkTipsRead() async {
     // "tip_category_progress_0" for BNPL tips
     double progress = _prefs.getDouble('tip_category_progress_0') ?? 0.0;
@@ -313,7 +314,7 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
   void _showLevelDialog(String title, IconData icon, String info) async {
     bool isBuyNowPayLaterCompleted = false;
 
-    // Check if BNPL was completed
+    // Check if BNPL was previously completed
     if (title == "Buy Now, Pay Later") {
       isBuyNowPayLaterCompleted =
           _prefs.getBool('scenario_buynowpaylater_completed') ?? false;
@@ -366,7 +367,7 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                     Text(
                       title,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: klooigeldBlauw,
                         fontFamily: AppTheme.neighbor,
                         fontWeight: FontWeight.bold,
@@ -377,7 +378,7 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                     Text(
                       info,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: AppTheme.neighbor,
                         fontWeight: FontWeight.w500,
                         color: klooigeldBlauw,
@@ -389,9 +390,9 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                       onPressed: () async {
                         Navigator.pop(context); // Close dialog
                         if (title == "Buy Now, Pay Later") {
+                          // If BNPL scenario was completed, user will "PLAY AGAIN" or attempt a single "TRY AGAIN"
                           if (isBuyNowPayLaterCompleted) {
-                            // Because it's a replay, ephemeral purchases and no permanent changes
-                            // Clear scenario-based progress to let the user PLAY AGAIN
+                            // Clear scenario ephemeral progress to start a fresh replay / try again
                             SharedPreferences prefs = await SharedPreferences.getInstance();
                             await prefs.remove('scenario_buynowpaylater_chatMessages');
                             await prefs.remove('scenario_buynowpaylater_tempBalance');
@@ -403,7 +404,7 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                             await prefs.remove('scenario_buynowpaylater_accumulated_deductions');
                           }
 
-                          // Now also check if BNPL tips have been read
+                          // Check if BNPL tips have been read
                           bool canProceed = await _checkTipsRead();
                           if (!canProceed) return;
 
@@ -425,7 +426,7 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                       // If scenario was completed, display "PLAY AGAIN", else "PLAY"
                       child: Text(
                         isBuyNowPayLaterCompleted ? "PLAY AGAIN" : "PLAY",
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontFamily: AppTheme.neighbor,
                           color: AppTheme.klooigeldRoze,
                         ),

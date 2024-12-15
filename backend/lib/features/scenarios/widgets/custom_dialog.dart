@@ -1,14 +1,15 @@
+// lib/features/scenarios/widgets/custom_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '/../theme/app_theme.dart';
+import 'package:backend/theme/app_theme.dart';
 
 class CustomDialog extends StatelessWidget {
   final IconData icon;
   final String title;
   final String content;
   final List<Widget> actions;
-  final dynamic closeValue; // Specifies the value to return when dialog is closed
-  final MainAxisAlignment actionsAlignment; // Determines alignment of action buttons
+  final dynamic closeValue;
+  final MainAxisAlignment actionsAlignment;
 
   const CustomDialog({
     Key? key,
@@ -17,7 +18,7 @@ class CustomDialog extends StatelessWidget {
     required this.content,
     required this.actions,
     this.closeValue,
-    this.actionsAlignment = MainAxisAlignment.end, // Default alignment
+    this.actionsAlignment = MainAxisAlignment.end,
   }) : super(key: key);
 
   @override
@@ -31,15 +32,15 @@ class CustomDialog extends StatelessWidget {
       child: WillPopScope(
         onWillPop: () async {
           Navigator.pop(context, closeValue);
-          return false; // Prevent default pop
+          return false;
         },
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
-            mainAxisSize: MainAxisSize.min, // Wrap content vertically
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Section
+              // Header
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -65,13 +66,13 @@ class CustomDialog extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(color: AppTheme.klooigeldBlauw, width: 1.8),
                       ),
-                      child: Icon(Icons.close, size: 16, color: AppTheme.klooigeldBlauw),
+                      child: const Icon(Icons.close, size: 16, color: AppTheme.klooigeldBlauw),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              // Content Section
+              // Content
               Text(
                 content,
                 style: TextStyle(
@@ -81,9 +82,9 @@ class CustomDialog extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              // Actions Section
+              // Actions
               Row(
-                mainAxisSize: MainAxisSize.min, // Shrink wrap Row horizontally
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: actionsAlignment,
                 children: actions.map((action) => Flexible(child: action)).toList(),
               ),
