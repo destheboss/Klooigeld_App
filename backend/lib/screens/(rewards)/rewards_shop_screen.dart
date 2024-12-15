@@ -1,3 +1,5 @@
+// screens/(rewards)/rewards_shop_screen.dart
+
 import 'dart:async';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/material.dart';
@@ -59,7 +61,7 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     }
 
     if (widget.isModal) {
-      // Only quest category if modal
+      // If isModal, e.g. a scenario sub-shop, load only category #4 (quest items) or whichever is relevant
       _categories = _categories.where((c) => c.id == 4).toList();
       if (_categories.isNotEmpty) {
         _selectedCategory = _categories.first;
@@ -76,7 +78,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
 
   Future<void> _loadData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    
+
+    // If launched from scenario with a custom "initialBalance," use that
     if (widget.initialBalance != null) {
       _klooicash = widget.initialBalance!;
     } else {
@@ -85,10 +88,9 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
 
     List<String> storedItems = prefs.getStringList('purchasedItems') ?? [];
     _purchasedItems = storedItems.map((e) => int.parse(e)).toSet();
-    
+
     setState(() {});
   }
-
 
   Future<bool> _onWillPop() async {
     Navigator.pop(context, _purchasedItems);
@@ -109,6 +111,7 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
       _filteredItems = _allItems.where((item) {
         final matchesName = item.name.toLowerCase().contains(query);
         if (widget.isModal && item.categoryId != 4) {
+          // If scenario is specifically quest-related, only show category #4 items
           return false;
         }
         final matchesCategory = category == null || item.categoryId == category.id;
@@ -145,11 +148,11 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     }
   }
 
-    Future<void> _onBuyPressed() async {
+  Future<void> _onBuyPressed() async {
     if (_selectedItemForPurchase == null) return;
     ShopItem item = _selectedItemForPurchase!;
 
-    // CHECKLIST: Deduct immediately, store in prefs
+    // Deduct cost once from in-game or main balance
     if (!_purchasedItems.contains(item.id)) {
       _klooicash -= item.price;
       _purchasedItems.add(item.id);
@@ -159,8 +162,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
       storedItems.add(item.id.toString());
       await prefs.setStringList('purchasedItems', storedItems);
 
+      // Only update main klooicash if not from a scenario-specific session
       if (widget.initialBalance == null) {
-        // If not launched from game, update main klooicash
         await prefs.setInt('klooicash', _klooicash);
       }
 
@@ -171,9 +174,7 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     setState(() {});
   }
 
-
   void _showPurchaseOverlay(ShopItem item) {
-    // CHECKLIST: If item already purchased, do not show overlay again.
     if (_purchasedItems.contains(item.id)) {
       // Already purchased
       return;
@@ -334,18 +335,18 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                                 color: AppTheme.black,
                               ),
                             ),
-                            const SizedBox(width:4),
+                            const SizedBox(width: 4),
                             Image.asset('assets/images/currency.png',
-                                width:12,height:20),
+                                width: 12, height: 20),
                           ],
                         ),
                     ],
                   ),
-                  const SizedBox(height:0),
+                  const SizedBox(height: 0),
 
                   if (!widget.isModal)
                     SizedBox(
-                      height:100,
+                      height: 100,
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         physics: const BouncingScrollPhysics(),
@@ -359,10 +360,10 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                               onTap: _clearCategorySelection,
                               backgroundColor: AppTheme.klooigeldBlauw,
                             ),
-                            const SizedBox(width:20),
+                            const SizedBox(width: 20),
                             for (var c in _categories)
                               Padding(
-                                padding: const EdgeInsets.only(right:20.0),
+                                padding: const EdgeInsets.only(right: 20.0),
                                 child: CategoryIcon(
                                   icon: c.icon,
                                   label: c.name,
@@ -376,13 +377,13 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                       ),
                     ),
 
-                  const SizedBox(height:16),
+                  const SizedBox(height: 16),
                   Container(
-                    height:40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: AppTheme.white,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.black, width:1.5),
+                      border: Border.all(color: Colors.black, width: 1.5),
                     ),
                     child: Row(
                       children: [
@@ -395,18 +396,19 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                               onChanged: _onSearchChanged,
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(vertical:8,horizontal:16),
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 8, horizontal: 16),
                               ),
                               style: TextStyle(
                                 fontFamily: AppTheme.neighbor,
-                                fontSize:14,
+                                fontSize: 14,
                                 color: AppTheme.black,
                               ),
                             ),
                           ),
                         ),
                         Padding(
-                          padding: const EdgeInsets.only(right:8),
+                          padding: const EdgeInsets.only(right: 8),
                           child: _searchController.text.isNotEmpty
                               ? GestureDetector(
                                   onTap: () {
@@ -414,21 +416,22 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                                     _unfocusSearch();
                                   },
                                   child: Container(
-                                    width:24,
-                                    height:24,
+                                    width: 24,
+                                    height: 24,
                                     decoration: BoxDecoration(
                                       color: AppTheme.white,
                                       shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.black, width:1.5),
+                                      border:
+                                          Border.all(color: Colors.black, width: 1.5),
                                     ),
                                     child: const Icon(
                                       Icons.close,
-                                      size:16,
+                                      size: 16,
                                       color: Colors.black,
                                     ),
                                   ),
                                 )
-                              : Icon(
+                              : const Icon(
                                   Icons.search,
                                   color: AppTheme.black,
                                 ),
@@ -436,12 +439,7 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height:28),
-
-                  if (!widget.isModal)
-                    const SizedBox(),
-
-                  if (widget.isModal) const SizedBox(height:8),
+                  const SizedBox(height: 28),
 
                   Expanded(
                     child: _filteredItems.isEmpty
@@ -450,21 +448,22 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                               'No results',
                               style: TextStyle(
                                 fontFamily: AppTheme.neighbor,
-                                fontSize:16,
+                                fontSize: 16,
                                 color: AppTheme.grey,
                               ),
                             ),
                           )
                         : GridView.builder(
                             physics: const BouncingScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount:2,
-                              crossAxisSpacing:16,
-                              mainAxisSpacing:16,
-                              childAspectRatio:0.7,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              childAspectRatio: 0.7,
                             ),
                             itemCount: _filteredItems.length,
-                            itemBuilder: (context,index) {
+                            itemBuilder: (context, index) {
                               final item = _filteredItems[index];
                               return ShopItemCard(
                                 name: item.name,
@@ -503,8 +502,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
         color: Colors.black54,
         child: Center(
           child: Container(
-            width: MediaQuery.of(context).size.width*0.9,
-            height: MediaQuery.of(context).size.height*0.8,
+            width: MediaQuery.of(context).size.width * 0.9,
+            height: MediaQuery.of(context).size.height * 0.8,
             decoration: BoxDecoration(
               color: AppTheme.white,
               borderRadius: BorderRadius.circular(16),

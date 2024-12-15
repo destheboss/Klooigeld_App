@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../theme/app_theme.dart';
 import 'models/tip_category.dart';
 import 'widgets/tip_card.dart';
@@ -41,6 +42,13 @@ class _TipsScreenState extends State<TipsScreen> {
     });
   }
 
+  /// Mark tips as read in SharedPreferences if user visits the tips screen
+  /// This can be made more fine-grained if you only want to mark them read after a certain condition.
+  Future<void> _markTipsAsRead() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('tips_read', true);
+  }
+
   @override
   Widget build(BuildContext context) {
     const double cardHeight = 160;
@@ -66,7 +74,11 @@ class _TipsScreenState extends State<TipsScreen> {
                         children: [
                           InkWell(
                             borderRadius: BorderRadius.circular(12),
-                            onTap: () => Navigator.pop(context),
+                            onTap: () async {
+                              // Mark tips as read when user leaves the screen
+                              await _markTipsAsRead();
+                              Navigator.pop(context);
+                            },
                             child: Container(
                               width: 40,
                               height: 40,
@@ -100,7 +112,7 @@ class _TipsScreenState extends State<TipsScreen> {
                           ),
                           PopupMenuButton<int>(
                             onSelected: (value) {
-                              // Placeholder for menu actions
+                              // Placeholder for future menu actions
                             },
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -176,7 +188,6 @@ class _TipsScreenState extends State<TipsScreen> {
                     ],
                   ),
                 ),
-                
 
                 // Stacked Cards Layout
                 Expanded(
