@@ -1,4 +1,5 @@
 // lib/features/scenarios/widgets/scenario_message_bubble.dart
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:backend/theme/app_theme.dart';
@@ -136,34 +137,75 @@ class ScenarioMessageBubble extends StatelessWidget {
   }
 
   Widget _formatMessageText(String message) {
-    // Convert 'K' to a currency icon, etc.
-    final regex = RegExp(r'(\d+)K');
-    final matches = regex.allMatches(message);
+    // Regular expressions to identify bold text and currency patterns
+    final boldRegex = RegExp(r'\*\*(.*?)\*\*');
+    final currencyRegex = RegExp(r'(\d+)K');
 
     List<InlineSpan> children = [];
-    int lastMatchEnd = 0;
-    TextStyle baseTextStyle = TextStyle(
-      fontFamily: AppTheme.neighbor,
-      fontWeight: FontWeight.w500,
-      fontSize: 14,
-      color: Colors.black,
-      height: 1.4,
-    );
+    int currentIndex = 0;
 
-    for (var match in matches) {
+    // Find all bold matches
+    Iterable<RegExpMatch> boldMatches = boldRegex.allMatches(message);
+
+    for (final match in boldMatches) {
+      // Text before the bold text
+      if (match.start > currentIndex) {
+        String normalText = message.substring(currentIndex, match.start);
+        children.addAll(_processCurrency(normalText, currencyRegex));
+      }
+
+      // Bold text without the ** markers
+      String boldText = match.group(1)!;
+      children.addAll(_processBoldAndCurrency(boldText, currencyRegex));
+
+      currentIndex = match.end;
+    }
+
+    // Remaining text after the last bold text
+    if (currentIndex < message.length) {
+      String remainingText = message.substring(currentIndex);
+      children.addAll(_processCurrency(remainingText, currencyRegex));
+    }
+
+    return RichText(
+      textAlign: TextAlign.left,
+      text: TextSpan(children: children),
+    );
+  }
+
+  List<InlineSpan> _processCurrency(String text, RegExp currencyRegex) {
+    List<InlineSpan> spans = [];
+    int lastMatchEnd = 0;
+
+    for (final match in currencyRegex.allMatches(text)) {
       if (match.start > lastMatchEnd) {
-        children.add(TextSpan(
-          text: message.substring(lastMatchEnd, match.start),
-          style: baseTextStyle,
+        spans.add(TextSpan(
+          text: text.substring(lastMatchEnd, match.start),
+          style: TextStyle(
+            fontFamily: AppTheme.neighbor,
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+            color: Colors.black,
+            height: 1.4,
+          ),
         ));
       }
-      // number
-      children.add(TextSpan(
-        text: '${match.group(1)}\u{200B}', // zero-width space
-        style: baseTextStyle,
+
+      // Number before 'K'
+      String number = match.group(1)!;
+      spans.add(TextSpan(
+        text: '$number\u{200B}',
+        style: TextStyle(
+          fontFamily: AppTheme.neighbor,
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+          color: Colors.black,
+          height: 1.4,
+        ),
       ));
-      // icon
-      children.add(
+
+      // Currency icon
+      spans.add(
         WidgetSpan(
           alignment: PlaceholderAlignment.middle,
           child: Transform.translate(
@@ -172,18 +214,88 @@ class ScenarioMessageBubble extends StatelessWidget {
           ),
         ),
       );
+
       lastMatchEnd = match.end;
     }
-    if (lastMatchEnd < message.length) {
-      children.add(TextSpan(
-        text: message.substring(lastMatchEnd),
-        style: baseTextStyle,
+
+    // Text after the last currency match
+    if (lastMatchEnd < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastMatchEnd),
+        style: TextStyle(
+          fontFamily: AppTheme.neighbor,
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+          color: Colors.black,
+          height: 1.4,
+        ),
       ));
     }
 
-    return RichText(
-      textAlign: TextAlign.left,
-      text: TextSpan(children: children),
-    );
+    return spans;
+  }
+
+  List<InlineSpan> _processBoldAndCurrency(String text, RegExp currencyRegex) {
+    List<InlineSpan> spans = [];
+    int lastMatchEnd = 0;
+
+    Iterable<RegExpMatch> currencyMatches = currencyRegex.allMatches(text);
+
+    for (final match in currencyMatches) {
+      if (match.start > lastMatchEnd) {
+        spans.add(TextSpan(
+          text: text.substring(lastMatchEnd, match.start),
+          style: TextStyle(
+            fontFamily: AppTheme.neighbor,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: Colors.black,
+            height: 1.4,
+          ),
+        ));
+      }
+
+      // Number before 'K'
+      String number = match.group(1)!;
+      spans.add(TextSpan(
+        text: '$number\u{200B}',
+        style: TextStyle(
+          fontFamily: AppTheme.neighbor,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+          color: Colors.black,
+          height: 1.4,
+        ),
+      ));
+
+      // Currency icon
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Transform.translate(
+            offset: const Offset(0, -0.3),
+            child: Image.asset('assets/images/currency.png', width: 10, height: 10),
+          ),
+        ),
+      );
+
+      lastMatchEnd = match.end;
+    }
+
+    // Text after the last currency match
+    if (lastMatchEnd < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastMatchEnd),
+        style: TextStyle(
+          fontFamily: AppTheme.neighbor,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+          color: Colors.black,
+          height: 1.4,
+        ),
+      ));
+    }
+
+    return spans;
   }
 }
