@@ -19,6 +19,7 @@ dependencies:
   path_provider: ^2.1.5
   dash: ^1.0.5
   provider: ^6.1.2
+  intl: ^0.20.1
 
 dev_dependencies:
   flutter_test:
