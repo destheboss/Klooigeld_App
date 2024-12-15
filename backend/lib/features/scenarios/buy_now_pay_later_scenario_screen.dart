@@ -756,6 +756,15 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     else if (_isTryAgain) {
       // single tryAgain attempt
       debugPrint("Completing single 'Try Again' attempt. Marking scenario complete again, ephemeral revert.");
+
+      // Unlock the next level after a successful Try Again attempt
+      int unlockedIndex = prefs.getInt('unlockedLevelIndex') ?? 0;
+      if (unlockedIndex < 1) { // Assuming there's only one level to unlock
+        unlockedIndex += 1;
+        await prefs.setInt('unlockedLevelIndex', unlockedIndex);
+        debugPrint("Unlocked next level index updated to $unlockedIndex.");
+      }
+
       await prefs.setBool('scenario_buynowpaylater_completed', true);
 
       // revert ephemeral changes
