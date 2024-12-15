@@ -59,7 +59,6 @@ class _BuyNowPayLaterScenarioScreenState
 
   bool _scenarioFirstTime = true;
   bool _resumed = false;
-  int _initialK = 0; // Changed from double to int
 
   // Store user choices for final analysis
   List<ScenarioChoice> _userChoices = [];

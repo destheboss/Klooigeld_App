@@ -17,7 +17,7 @@ ScenarioModel buildBuyNowPayLaterScenario() {
       choices: [
         ScenarioChoice(
           text: "Continue",
-          kChange: 0.0,
+          kChange: 0,
           outcome: "Your phone vibrates and you wonder who it is",
           dialogueText: "Ugh, overthinking again... let’s see who’s texting"
         ),
@@ -31,13 +31,13 @@ ScenarioModel buildBuyNowPayLaterScenario() {
       choices: [
         ScenarioChoice(
           text: "Pay 20K now.",
-          kChange: -20.0,
+          kChange: -20,
           outcome: "You pay 20K right away. No debt, just less cash.. for now..",
           dialogueText: "I’ll just pay now and get it over with. Can’t deal with future me hating present me"
         ),
         ScenarioChoice(
           text: "Use Klaro (pay 20K later)",
-          kChange: 0.0,
+          kChange: 0,
           outcome: "You skip the payment for now but owe Klaro 20K later. Future you can handle that",
           dialogueText: "Let’s just Klaro it. More cash for snacks tonight, right?"
         ),
@@ -51,7 +51,7 @@ ScenarioModel buildBuyNowPayLaterScenario() {
       choices: [
         ScenarioChoice(
           text: "Continue",
-          kChange: 0.0,
+          kChange: 0,
           outcome: "You pick up your phone and sigh 😔😔",
           dialogueText: "Bruh"
         ),
@@ -65,19 +65,19 @@ ScenarioModel buildBuyNowPayLaterScenario() {
       choices: [
         ScenarioChoice(
           text: "Pay 70K now to fix it",
-          kChange: -70.0,
+          kChange: -70,
           outcome: "You fix the phone and take the hit now.. but at least no debt, right?",
           dialogueText: "Alright, lemme just get this fixed. It hurts, but what's done is done.."
         ),
         ScenarioChoice(
           text: "Get a new phone via Klaro (700K later)",
-          kChange: 0.0,
+          kChange: 0,
           outcome: "You walk away with a new phone. But oof… you owe Klaro 700K now.. Big yikes 💀",
           dialogueText: "A new phone? Say less. I’ll deal with Klaro later... future me’s problem"
         ),
         ScenarioChoice(
           text: "Keep it cracked.",
-          kChange: 0.0,
+          kChange: 0,
           outcome: "You keep your cash but risk that phone dying when you need it most",
           dialogueText: "I’ll survive with a cracked phone for now. Who even needs a perfect screen anyway?"
         ),
@@ -91,7 +91,7 @@ ScenarioModel buildBuyNowPayLaterScenario() {
       choices: [
         ScenarioChoice(
           text: "Continue",
-          kChange: 0.0,
+          kChange: 0,
           outcome: "‘Aight imma head out’🚶, you say, deciding what to grab for Grandma",
           dialogueText: "Grandma deserves something nice. Let’s see..."
         ),
@@ -105,13 +105,13 @@ ScenarioModel buildBuyNowPayLaterScenario() {
       choices: [
         ScenarioChoice(
           text: "Buy the 10K flowers",
-          kChange: -10.0,
+          kChange: -10,
           outcome: "🌺 Grandma’s eyes light up as you hand her the flowers. ‘You’re such a thoughtful soul’, she says, slipping 30K into your hand 💸",
           dialogueText: "These are for you, Grandma. Happy birthday! You deserve the best"
         ),
         ScenarioChoice(
           text: "Buy the 5K chocolates",
-          kChange: -5.0,
+          kChange: -5,
           outcome: "🍫 Grandma glows as she takes the chocolates. ‘You always know how to make me smile’, she says, gifting you a small sum of 15K 🎁",
           dialogueText: "Got these just for you, Grandma! Sweet treats for the sweetest person"
         ),

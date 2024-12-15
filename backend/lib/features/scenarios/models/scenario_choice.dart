@@ -1,6 +1,6 @@
 class ScenarioChoice {
   final String text;
-  final double kChange;
+  final int kChange;
   final String outcome;
   final String dialogueText; // New field for user's spoken line
 

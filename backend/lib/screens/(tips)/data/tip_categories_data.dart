@@ -7,7 +7,7 @@ import '/theme/app_theme.dart';
 List<TipCategory> initialTipCategories = [
   TipCategory(
     index: 0,
-    title: 'PAY AFTER',
+    title: 'PAY LATER',
     icon: FontAwesomeIcons.clock,
     progress: 0.0,
     backgroundColor: AppTheme.klooigeldRoze,
