@@ -1,22 +1,26 @@
 // screens/(learning_road)/learning-road_screen.dart
 
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:backend/screens/(learning_road)/widgets/animated_dialog.dart';
 import 'package:backend/screens/(learning_road)/widgets/progress_and_balance_display.dart';
 import 'package:backend/screens/(learning_road)/widgets/road.dart';
 import 'package:backend/screens/(learning_road)/widgets/stop_widget.dart';
 import 'package:backend/screens/(tips)/tips_screen.dart';
 import 'package:backend/theme/app_theme.dart';
-import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:backend/features/scenarios/buy_now_pay_later_scenario_screen.dart';
+import '../../main.dart'; // To access the global routeObserver
 
 class LearningRoadScreen extends StatefulWidget {
+  const LearningRoadScreen({Key? key}) : super(key: key);
+
   @override
   State<LearningRoadScreen> createState() => _LearningRoadScreenState();
 }
 
 class _LearningRoadScreenState extends State<LearningRoadScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, RouteAware {
   late SharedPreferences _prefs;
   bool _isLoading = true;
 
@@ -107,6 +111,28 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
     });
   }
 
+  /// Subscribe to the RouteObserver
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  /// Unsubscribe from the RouteObserver to prevent memory leaks
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    _scrollController.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Called when the current route has been popped back to.
+  @override
+  void didPopNext() {
+    _refreshUnlockedLevels();
+  }
+
   Future<void> _loadProgress() async {
     _prefs = await SharedPreferences.getInstance();
     unlockedIndex = _prefs.getInt('unlockedLevelIndex') ?? 0;
@@ -137,6 +163,44 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
     setState(() {
       _controller.value = initialValue;
       _isLoading = false;
+    });
+  }
+
+  Future<void> _refreshUnlockedLevels() async {
+    // Reload progress from SharedPreferences
+    unlockedIndex = _prefs.getInt('unlockedLevelIndex') ?? 0;
+
+    if (unlockedIndex < 0 || unlockedIndex >= stops.length) {
+      unlockedIndex = 0;
+    }
+
+    // Reset all stops to 'locked'
+    for (var stop in stops) {
+      stop['status'] = 'locked';
+      stop['icon'] = Icons.lock;
+    }
+
+    // Unlock stops up to the unlockedIndex
+    for (int i = 0; i <= unlockedIndex && i < stops.length; i++) {
+      stops[i]['status'] = 'unlocked';
+      stops[i]['icon'] =
+          i == 0 ? Icons.credit_card : financeIcons[(i - 1) % financeIcons.length];
+    }
+
+    double updatedValue = unlockedIndex / stops.length;
+
+    setState(() {
+      _iconPositionAnimation = Tween<double>(
+        begin: _iconPositionAnimation.value,
+        end: unlockedIndex / (stops.length - 1),
+      ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+      _animation = Tween<double>(
+        begin: _animation.value,
+        end: updatedValue,
+      ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+      _controller.forward(from: 0);
     });
   }
 
@@ -414,7 +478,10 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                             MaterialPageRoute(
                               builder: (context) => const BuyNowPayLaterScenarioScreen(),
                             ),
-                          );
+                          ).then((_) {
+                            // After returning from the scenario screen, refresh unlocked levels
+                            _refreshUnlockedLevels();
+                          });
                         } else {
                           // Future scenario screens
                         }
@@ -479,13 +546,6 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    _controller.dispose();
-    super.dispose();
   }
 
   @override

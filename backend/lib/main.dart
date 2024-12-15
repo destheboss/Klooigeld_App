@@ -1,3 +1,5 @@
+// main.dart
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,7 +24,7 @@ void main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   bool hasSeenIntroduction = prefs.getBool('hasSeenIntroduction') ?? false;
 
-  runApp(SleepApp(hasSeenIntroduction: hasSeenIntroduction));
+  runApp(KlooigeldApp(hasSeenIntroduction: hasSeenIntroduction));
 }
 
 Future<void> precacheAssets() async {
@@ -30,22 +32,34 @@ Future<void> precacheAssets() async {
   final data = json.decode(jsonString);
   final List<String> imagePaths = List<String>.from(data['images']);
 
-  final Widget tempWidget = MaterialApp(
-    builder: (context, child) {
-      for (String path in imagePaths) {
-        precacheImage(AssetImage(path), context);
-      }
-      return const SizedBox();
-    },
+  // Create a temporary context for precaching images.
+  // Using a dummy widget to obtain a context.
+  final Completer<void> completer = Completer<void>();
+  runApp(
+    MaterialApp(
+      home: Builder(
+        builder: (context) {
+          for (String path in imagePaths) {
+            precacheImage(AssetImage(path), context);
+          }
+          // Once precaching is done, complete the completer.
+          completer.complete();
+          return const SizedBox(); // Empty widget
+        },
+      ),
+      debugShowCheckedModeBanner: false,
+    ),
   );
 
-  runApp(tempWidget);
+  // Wait until precaching is complete.
+  await completer.future;
+  // After precaching, remove the temporary widget by not doing anything.
 }
 
-class SleepApp extends StatelessWidget {
+class KlooigeldApp extends StatelessWidget {
   final bool hasSeenIntroduction;
 
-  const SleepApp({super.key, required this.hasSeenIntroduction});
+  const KlooigeldApp({super.key, required this.hasSeenIntroduction});
 
   @override
   Widget build(BuildContext context) {
