@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 
 enum NotificationType {
   unlockedGameScenario,
-  bnplAlert,
+  klaroAlert, // Replaced BNPL with Klaro
   paymentReminder,
   promotionalOffer,
   balanceWarning,
+  welcome, // Added welcome notification type
 }
 
 class AppNotification {

@@ -4,14 +4,18 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_model.dart';
+import 'package:uuid/uuid.dart';
 
 class NotificationService extends ChangeNotifier {
   static const String _prefsKey = 'app_notifications';
+  static const String _firstTimeKey = 'is_first_time';
   List<AppNotification> _notifications = [];
 
   List<AppNotification> get notifications => _notifications;
 
   bool get hasUnreadNotifications => _notifications.any((notif) => !notif.isRead);
+
+  final Uuid _uuid = Uuid();
 
   NotificationService() {
     _loadNotifications();
@@ -25,6 +29,14 @@ class NotificationService extends ChangeNotifier {
       Map<String, dynamic> map = jsonDecode(e);
       return AppNotification.fromMap(map);
     }).toList();
+
+    // Check if it's the first time the user is opening the app
+    bool isFirstTime = prefs.getBool(_firstTimeKey) ?? true;
+    if (isFirstTime) {
+      await addWelcomeNotification();
+      await prefs.setBool(_firstTimeKey, false);
+    }
+
     notifyListeners();
   }
 
@@ -35,9 +47,48 @@ class NotificationService extends ChangeNotifier {
     await prefs.setStringList(_prefsKey, rawList);
   }
 
-  // Add a new notification
-  Future<void> addNotification(AppNotification notification) async {
-    _notifications.insert(0, notification);
+  // Helper method to check if a notification is a welcome notification
+  bool isWelcomeNotification(AppNotification notification) {
+    return notification.type == NotificationType.welcome;
+  }
+
+  // Add a new notification with auto-generated ID and timestamp
+  Future<void> addNotification({
+    required String title,
+    required String message,
+    required NotificationType type,
+  }) async {
+    final notification = AppNotification(
+      id: _uuid.v4(),
+      title: title,
+      message: message,
+      type: type,
+      timestamp: DateTime.now(),
+    );
+
+    // Check if the first notification is a welcome notification
+    if (_notifications.isNotEmpty && isWelcomeNotification(_notifications.first)) {
+      // Insert after the welcome notification
+      _notifications.insert(1, notification);
+    } else {
+      // Insert at the beginning
+      _notifications.insert(0, notification);
+    }
+
+    await _saveNotifications();
+    notifyListeners();
+  }
+
+  // Add welcome notification for first-time users
+  Future<void> addWelcomeNotification() async {
+    final welcomeNotification = AppNotification(
+      id: _uuid.v4(),
+      title: 'Welcome to Klooigeld!',
+      message: 'Thank you for joining us. Enjoy your experience!',
+      type: NotificationType.welcome, // Updated to welcome type
+      timestamp: DateTime.now(),
+    );
+    _notifications.insert(0, welcomeNotification);
     await _saveNotifications();
     notifyListeners();
   }
@@ -85,31 +136,19 @@ class NotificationService extends ChangeNotifier {
   // Mock notifications for demonstration purposes
   Future<void> mockNotifications() async {
     await addNotification(
-      AppNotification(
-        id: '1',
-        title: 'Unlocked Game Scenario',
-        message: 'You have unlocked a new game scenario!',
-        type: NotificationType.unlockedGameScenario,
-        timestamp: DateTime.now(),
-      ),
+      title: 'Unlocked Game Scenario',
+      message: 'You have unlocked a new game scenario!',
+      type: NotificationType.unlockedGameScenario,
     );
     await addNotification(
-      AppNotification(
-        id: '2',
-        title: 'BNPL Alert',
-        message: 'You have a new Buy Now, Pay Later option available.',
-        type: NotificationType.bnplAlert,
-        timestamp: DateTime.now(),
-      ),
+      title: 'Klaro Alert',
+      message: 'You have a new Klaro option available.',
+      type: NotificationType.klaroAlert,
     );
     await addNotification(
-      AppNotification(
-        id: '3',
-        title: 'Payment Reminder',
-        message: 'Your payment is pending. Please complete it.',
-        type: NotificationType.paymentReminder,
-        timestamp: DateTime.now(),
-      ),
+      title: 'Payment Reminder',
+      message: 'Your payment is pending. Please complete it.',
+      type: NotificationType.paymentReminder,
     );
     // Add more mock notifications as needed
   }

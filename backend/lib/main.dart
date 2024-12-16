@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 
-// Import screens
 import 'screens/(home)/home_screen.dart';
 import 'screens/(introduction)/introduction_screen.dart';
 import 'services/notification_service.dart'; // Import the notification service

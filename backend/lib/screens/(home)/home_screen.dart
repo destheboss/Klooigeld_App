@@ -1,4 +1,4 @@
-// lib/screens/home/home_screen.dart
+// lib/screens/home_screen.dart
 
 import 'dart:convert';
 import 'dart:io';
@@ -137,7 +137,7 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
   /// Otherwise parse YYYY-MM-DD and format as "Month d".
   String _formatDate(String dateStr) {
     if (dateStr.toLowerCase() == "pending") {
-      /// NEW: "Pending" placeholder for BNPL or future-due transactions
+      /// NEW: "Pending" placeholder for Klaro or future-due transactions
       return "Pending";
     }
     try {
@@ -195,29 +195,12 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                           children: [
                             Consumer<NotificationService>(
                               builder: (context, notificationService, child) {
-                                String iconPath = notificationService.hasUnreadNotifications
+                                String iconPath = notificationService.notifications.isNotEmpty
                                     ? 'assets/images/icons/email-notif.png'
                                     : 'assets/images/icons/email.png';
-                                return Stack(
-                                  children: [
-                                    IconButton(
-                                      icon: Image.asset(iconPath, width: 40, height: 40),
-                                      onPressed: _toggleNotifications,
-                                    ),
-                                    if (notificationService.hasUnreadNotifications)
-                                      Positioned(
-                                        right: 8,
-                                        top: 8,
-                                        child: Container(
-                                          width: 10,
-                                          height: 10,
-                                          decoration: BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
+                                return IconButton(
+                                  icon: Image.asset(iconPath, width: 40, height: 40),
+                                  onPressed: _toggleNotifications,
                                 );
                               },
                             ),
@@ -538,11 +521,11 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                                       ? const AlwaysScrollableScrollPhysics()
                                       : const NeverScrollableScrollPhysics(),
                                   itemCount: _transactions.length,
-                                  separatorBuilder: (context, index) => const Divider(height: 15.0),
+                                  separatorBuilder: (context, index) => const SizedBox(height: 0),
                                   itemBuilder: (context, index) {
                                     final tx = _transactions[index];
                                     final sign = tx.amount > 0 ? '+' : (tx.amount < 0 ? '-' : '');
-                                    /// If it's a pending BNPL transaction with amount=0,
+                                    /// If it's a pending Klaro transaction with amount=0,
                                     /// we still show "0 K" to clarify that the real payment is pending.
                                     final formattedAmount = tx.amount != 0 ? '$sign${tx.amount.abs()} K' : '0 K';
 
