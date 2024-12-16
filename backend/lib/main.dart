@@ -1,13 +1,16 @@
-// main.dart
+// lib/main.dart
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 
 // Import screens
 import 'screens/(home)/home_screen.dart';
 import 'screens/(introduction)/introduction_screen.dart';
+import 'services/notification_service.dart'; // Import the notification service
 
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
@@ -17,69 +20,98 @@ void main() async {
   // App runs only in portrait mode.
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-  // Precache all images before the app starts.
-  await precacheAssets();
-
-  // Retrieve shared preferences instance and check introduction screen status.
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  bool hasSeenIntroduction = prefs.getBool('hasSeenIntroduction') ?? false;
-
-  runApp(KlooigeldApp(hasSeenIntroduction: hasSeenIntroduction));
-}
-
-Future<void> precacheAssets() async {
-  final String jsonString = await rootBundle.loadString('assets/json/image_list.json');
-  final data = json.decode(jsonString);
-  final List<String> imagePaths = List<String>.from(data['images']);
-
-  // Create a temporary context for precaching images.
-  // Using a dummy widget to obtain a context.
-  final Completer<void> completer = Completer<void>();
   runApp(
-    MaterialApp(
-      home: Builder(
-        builder: (context) {
-          for (String path in imagePaths) {
-            precacheImage(AssetImage(path), context);
-          }
-          // Once precaching is done, complete the completer.
-          completer.complete();
-          return const SizedBox(); // Empty widget
-        },
-      ),
-      debugShowCheckedModeBanner: false,
+    ChangeNotifierProvider(
+      create: (_) => NotificationService(),
+      child: const KlooigeldApp(),
     ),
   );
-
-  // Wait until precaching is complete.
-  await completer.future;
-  // After precaching, remove the temporary widget by not doing anything.
 }
 
 class KlooigeldApp extends StatelessWidget {
-  final bool hasSeenIntroduction;
-
-  const KlooigeldApp({super.key, required this.hasSeenIntroduction});
+  const KlooigeldApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Setting up system UI overlay styles.
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      systemNavigationBarColor: Colors.black,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ));
-
     return MaterialApp(
       title: 'Klooigeld App',
-      navigatorObservers: [routeObserver], // Add the RouteObserver here
+      navigatorObservers: [routeObserver],
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: hasSeenIntroduction
-          ? const HomeScreen()
-          : const IntroductionScreen(),
+      home: const PrecacheAndLoadScreen(),
     );
+  }
+}
+
+class PrecacheAndLoadScreen extends StatefulWidget {
+  const PrecacheAndLoadScreen({Key? key}) : super(key: key);
+
+  @override
+  _PrecacheAndLoadScreenState createState() => _PrecacheAndLoadScreenState();
+}
+
+class _PrecacheAndLoadScreenState extends State<PrecacheAndLoadScreen> {
+  bool _isLoading = true;
+  bool _hasSeenIntroduction = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Precache assets
+    await _precacheAssets();
+
+    // Load shared preferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    _hasSeenIntroduction = prefs.getBool('hasSeenIntroduction') ?? false;
+
+    // Mock notifications for demonstration if no notifications exist
+    NotificationService notificationService = Provider.of<NotificationService>(context, listen: false);
+    if (notificationService.notifications.isEmpty) {
+      await notificationService.mockNotifications();
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _precacheAssets() async {
+    final String jsonString = await rootBundle.loadString('assets/json/image_list.json');
+    final data = json.decode(jsonString);
+    final List<String> imagePaths = List<String>.from(data['images']);
+
+    // Precache images
+    await precacheImages(imagePaths);
+  }
+
+  Future<void> precacheImages(List<String> imagePaths) async {
+    final Completer<void> completer = Completer<void>();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (String path in imagePaths) {
+        precacheImage(AssetImage(path), context);
+      }
+      completer.complete();
+    });
+    await completer.future;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    } else {
+      return _hasSeenIntroduction
+          ? const HomeScreen()
+          : const IntroductionScreen();
+    }
   }
 }
