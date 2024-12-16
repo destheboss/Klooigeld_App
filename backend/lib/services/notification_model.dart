@@ -1,7 +1,5 @@
 // lib/services/notification_model.dart
 
-import 'package:flutter/material.dart';
-
 enum NotificationType {
   unlockedGameScenario,
   klaroAlert, // Replaced BNPL with Klaro
