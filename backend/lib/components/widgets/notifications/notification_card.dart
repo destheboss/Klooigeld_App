@@ -1,8 +1,11 @@
 // lib/components/widgets/notifications/notification_card.dart
 
-// No functional changes needed here besides ensuring Klaro alerts have meaningful icons/colors.
-// The code remains as is. The card just displays notifications.
-// Comments added for clarity.
+// Explanation of changes:
+// Previously, we displayed the notification.message as plain text.
+// For Balance Warning notifications, we now parse the message for balance values ending in 'K',
+// and replace the 'K' with a currency image icon to match the shop's style.
+// If the message ends with something like "250K", we split this into "250" and display a currency image
+// after the number. If negative or no trailing 'K', we show the message as-is.
 
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -19,10 +22,10 @@ final List<String> scenarioNames = [
 ];
 
 final List<Color> unlockedStopColors = [
-  Color(0xFFF787D9), 
-  Color(0xFF1D1999), 
+  Color(0xFFF787D9),
+  Color(0xFF1D1999),
   Color(0xFF99cf2d),
-  Color(0xFFC8BBF3), 
+  Color(0xFFC8BBF3),
 ];
 
 Color _getScenarioColor(String scenarioName) {
@@ -71,11 +74,72 @@ class NotificationCard extends StatelessWidget {
     } else if (notification.type == NotificationType.promotionalOffer) {
       iconColor = AppTheme.klooigeldGroen;
     } else if (notification.type == NotificationType.balanceWarning) {
-      iconColor = Colors.red;
+      iconColor = AppTheme.klooigeldRozeAlt;
     } else if (notification.type == NotificationType.welcome) {
       iconColor = AppTheme.klooigeldPaars;
     } else {
       iconColor = AppTheme.klooigeldBlauw;
+    }
+
+    // NEW: For Balance Warning messages, we replace 'K' with a currency image widget.
+    // If the message ends with something like '250K', we'll show '250' + currency image.
+    Widget messageWidget;
+    if (notification.type == NotificationType.balanceWarning && notification.message.trim().endsWith('K')) {
+      // Extract the numeric part before 'K'
+      String trimmedMessage = notification.message.trim();
+      String withoutK = trimmedMessage.substring(0, trimmedMessage.length - 1).trim();
+      // Example: "Your balance dropped below 250K" -> we split and rebuild:
+      // We'll split by space to find the numeric part easily
+      // However, message might vary, so we carefully handle it:
+      // We'll assume the last token before 'K' is the numeric value.
+      final parts = withoutK.split(' ');
+      final lastPart = parts.last;
+      // Rebuild the message without the trailing numeric+K
+      // Example: parts: ["Your", "balance", "dropped", "below", "250"]
+      // lastPart: "250"
+      // We'll remove the lastPart and show it separately with the currency icon
+      String prefixMessage = parts.take(parts.length - 1).join(' ');
+      messageWidget = Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Text(
+              prefixMessage,
+              style: TextStyle(
+                fontFamily: AppTheme.neighbor,
+                fontSize: 14,
+                color: AppTheme.black.withOpacity(0.8),
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            lastPart,
+            style: TextStyle(
+              fontFamily: AppTheme.neighbor,
+              fontSize: 14,
+              color: AppTheme.black.withOpacity(0.8),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Image.asset(
+            'assets/images/currency.png',
+            width: 14,
+            height: 14,
+          ),
+        ],
+      );
+    } else {
+      // For all other notifications (including negative or no trailing K), show as-is.
+      messageWidget = Text(
+        notification.message,
+        style: TextStyle(
+          fontFamily: AppTheme.neighbor,
+          fontSize: 14,
+          color: AppTheme.black.withOpacity(0.8),
+        ),
+      );
     }
 
     return Container(
@@ -117,14 +181,7 @@ class NotificationCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  notification.message,
-                  style: TextStyle(
-                    fontFamily: AppTheme.neighbor,
-                    fontSize: 14,
-                    color: AppTheme.black.withOpacity(0.8),
-                  ),
-                ),
+                messageWidget, // REPLACED direct Text(notification.message) with widget logic above
                 const SizedBox(height: 4),
                 Text(
                   _formatTimestamp(notification.timestamp),

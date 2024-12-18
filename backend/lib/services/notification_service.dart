@@ -1,10 +1,18 @@
 // lib/services/notification_service.dart
 
 // Explanation of changes:
-// - After adding the promotional offer notification on the first launch, also add the BNPL unlock notification immediately.
-// - Previously, BNPL scenario unlock notification was only sent after navigating to learning road or completing a scenario.
-// - Now, on first launch, after adding the promotional offer notification, we check if BNPL scenario (index=0) is considered unlocked by default and send its notification if not already sent.
-// - We use a SharedPreferences bool 'bnpl_notification_sent' to ensure it only appears once.
+// The previous implementation sometimes sent multiple notifications for the lower thresholds (below 50 or negative)
+// after having already sent a notification for the higher threshold (below 250).
+//
+// Adjustments made:
+// 1. Before sending a notification, we now set the corresponding sent-flag in SharedPreferences first. This ensures
+//    that even if checkBalanceWarnings is called again rapidly, it will not resend the same notification.
+// 2. The logic is strictly sequential. We first check negative, then below 50, then below 250. Only one condition can pass.
+// 3. After sending a new notification, we do not reset flags until the balance recovers above that threshold. This prevents
+//    re-triggering the same alert multiple times without recovery.
+//
+// Result:
+// Only one notification is sent at a time, and no double notifications are sent if user continuously drops balance.
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -17,12 +25,18 @@ class NotificationService extends ChangeNotifier {
   static const String _prefsKey = 'app_notifications';
   static const String _firstTimeKey = 'is_first_time';
   static const String _promoOfferKey = 'promo_offer_shown';
-  static const String _bnplNotiSentKey = 'bnpl_notification_sent'; // NEW: track if BNPL notification sent
+  static const String _bnplNotiSentKey = 'bnpl_notification_sent';
+
+  // Keys to track if balance warnings have been sent
+  static const String _balanceBelow250SentKey = 'balance_below_250_sent';
+  static const String _balanceBelow50SentKey = 'balance_below_50_sent';
+  static const String _balanceNegativeSentKey = 'balance_negative_sent';
+
   List<AppNotification> _notifications = [];
 
   List<AppNotification> get notifications => _notifications;
   bool get hasUnreadNotifications => _notifications.any((notif) => !notif.isRead);
-  
+
   final Uuid _uuid = Uuid();
 
   NotificationService() {
@@ -41,14 +55,11 @@ class NotificationService extends ChangeNotifier {
     bool promoOfferShown = prefs.getBool(_promoOfferKey) ?? false;
     bool bnplNotiSent = prefs.getBool(_bnplNotiSentKey) ?? false;
 
-    // On first launch, show welcome + promotional offer notifications
+    // On first launch, show welcome and promo
     if (isFirstTime) {
       await addWelcomeNotification();
       await prefs.setBool(_firstTimeKey, false);
 
-      // After promotional offer, also show BNPL scenario unlocked notification if not sent
-      // BNPL is the first scenario and considered unlocked by default.
-      // Only do this if bnpl_notification_sent is false.
       if (!bnplNotiSent) {
         await addBNPLScenarioNotification();
         await prefs.setBool(_bnplNotiSentKey, true);
@@ -122,9 +133,7 @@ class NotificationService extends ChangeNotifier {
     );
   }
 
-  // NEW: Add BNPL scenario unlocked notification after promotional offer on first launch
   Future<void> addBNPLScenarioNotification() async {
-    // BNPL scenario name is "Buy Now, Pay Later"
     const scenarioName = "Buy Now, Pay Later";
     const scenarioMsg = "Time to flex those delayed payment skills!";
     await addNotification(
@@ -206,6 +215,71 @@ class NotificationService extends ChangeNotifier {
   Future<void> refreshKlaroAlerts() async {
     await _checkPendingKlaroTransactions();
     await _saveNotifications();
+    notifyListeners();
+  }
+
+  // Revised checkBalanceWarnings to prevent multiple notifications:
+  Future<void> checkBalanceWarnings(int currentBalance) async {
+    final prefs = await SharedPreferences.getInstance();
+    bool below250Sent = prefs.getBool(_balanceBelow250SentKey) ?? false;
+    bool below50Sent = prefs.getBool(_balanceBelow50SentKey) ?? false;
+    bool negativeSent = prefs.getBool(_balanceNegativeSentKey) ?? false;
+
+    String? warningMessage;
+    String warningTitle = 'Balance Warning';
+    String triggeredThreshold = '';
+
+    // Check thresholds in order of severity:
+    if (currentBalance < 0 && !negativeSent) {
+      warningMessage = "Your balance is negative!";
+      triggeredThreshold = 'negative';
+    } else if (currentBalance < 50 && !below50Sent && !negativeSent) {
+      warningMessage = "Your balance dropped below 50K";
+      triggeredThreshold = 'below50';
+    } else if (currentBalance < 250 && !below250Sent && !below50Sent && !negativeSent) {
+      warningMessage = "Your balance dropped below 250K";
+      triggeredThreshold = 'below250';
+    }
+
+    // If we have a new warning to trigger:
+    if (triggeredThreshold.isNotEmpty && warningMessage != null) {
+      // Set the flag FIRST before adding notification
+      if (triggeredThreshold == 'negative') {
+        await prefs.setBool(_balanceNegativeSentKey, true);
+      } else if (triggeredThreshold == 'below50') {
+        await prefs.setBool(_balanceBelow50SentKey, true);
+      } else if (triggeredThreshold == 'below250') {
+        await prefs.setBool(_balanceBelow250SentKey, true);
+      }
+
+      await addNotification(
+        title: warningTitle,
+        message: warningMessage,
+        type: NotificationType.balanceWarning,
+      );
+    }
+
+    // Reset logic when user recovers above thresholds:
+    if (currentBalance >= 250) {
+      // Fully reset if above 250
+      if (below250Sent || below50Sent || negativeSent || triggeredThreshold.isNotEmpty) {
+        await prefs.setBool(_balanceBelow250SentKey, false);
+        await prefs.setBool(_balanceBelow50SentKey, false);
+        await prefs.setBool(_balanceNegativeSentKey, false);
+      }
+    } else if (currentBalance >= 50 && currentBalance < 250) {
+      // Recovered above 50 but still below 250 resets lower alerts:
+      if (below50Sent || negativeSent) {
+        await prefs.setBool(_balanceBelow50SentKey, false);
+        await prefs.setBool(_balanceNegativeSentKey, false);
+      }
+    } else if (currentBalance >= 0 && currentBalance < 50) {
+      // Recovered above 0 but still below 50 resets negative alert:
+      if (negativeSent) {
+        await prefs.setBool(_balanceNegativeSentKey, false);
+      }
+    }
+
     notifyListeners();
   }
 }

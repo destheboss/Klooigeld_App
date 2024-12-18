@@ -81,6 +81,11 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
       _klooicashFuture = _getKlooicash();
     });
     await _loadTransactions();
+    // NEW: After reloading transactions and balance, check balance warnings:
+    final newBalance = await _klooicashFuture!;
+    // Call notification service to check if a balance warning is needed
+    final notificationService = Provider.of<NotificationService>(context, listen: false);
+    await notificationService.checkBalanceWarnings(newBalance);
   }
 
   Future<String> _getUsername() async {

@@ -20,6 +20,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../main.dart';
 import '../../../features/scenarios/widgets/custom_dialog.dart';
 import '../../../../screens/(rewards)/rewards_shop_screen.dart'; // Added for navigation to shop screen
+import '../../../services/scenario_colors.dart';
 
 class NotificationDropdown extends StatefulWidget {
   final VoidCallback onClose;
@@ -330,7 +331,7 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
                                       key: Key(notif.id),
                                       direction: DismissDirection.horizontal,
                                       background: Container(
-                                        color: _getBackgroundColor(notif.type),
+                                        color: _getBackgroundColor(notif),
                                         alignment: Alignment.centerLeft,
                                         padding: const EdgeInsets.only(left: 20),
                                         child: const FaIcon(
@@ -339,7 +340,7 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
                                         ),
                                       ),
                                       secondaryBackground: Container(
-                                        color: _getBackgroundColor(notif.type),
+                                        color: _getBackgroundColor(notif),
                                         alignment: Alignment.centerRight,
                                         padding: const EdgeInsets.only(right: 20),
                                         child: const FaIcon(
@@ -405,12 +406,19 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
     );
   }
 
-  Color _getBackgroundColor(NotificationType type) {
+  /// Updated _getBackgroundColor to handle dynamic colors for unlockedGameScenario
+  Color _getBackgroundColor(AppNotification notif) {
+    if (notif.type == NotificationType.unlockedGameScenario) {
+      // Use the shared getScenarioColor function
+      return getScenarioColor(notif.scenarioName);
+    }
+
     // Adjust promotionalOffer color so it's different from welcome
     // Let's use AppTheme.klooigeldRozeAlt for promotionalOffer
-    switch (type) {
+    switch (notif.type) {
       case NotificationType.unlockedGameScenario:
-        return AppTheme.klooigeldBlauw;
+        // Already handled above
+        return getScenarioColor(notif.scenarioName);
       case NotificationType.klaroAlert:
         return AppTheme.klooigeldGroen;
       case NotificationType.paymentReminder:
@@ -418,7 +426,7 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
       case NotificationType.promotionalOffer:
         return AppTheme.klooigeldGroen;
       case NotificationType.balanceWarning:
-        return Colors.red;
+        return AppTheme.klooigeldRozeAlt;
       case NotificationType.welcome:
         return AppTheme.klooigeldPaars;
       default:
