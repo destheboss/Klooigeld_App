@@ -5,6 +5,33 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../services/notification_model.dart';
 import '../../../theme/app_theme.dart';
 
+// We replicate the scenario order and colors from the learning road.
+final List<String> scenarioNames = [
+  "Buy Now, Pay Later",
+  "Saving",
+  "Gambling Basics",
+  "Insurances",
+  "Loans",
+  "Investing",
+];
+
+final List<Color> unlockedStopColors = [
+  Color(0xFFF787D9), // klooigeldRoze
+  Color(0xFF1D1999), // klooigeldBlauw
+  Color(0xFF99cf2d),
+  Color(0xFFC8BBF3), // klooigeldPaars
+];
+
+// Helper to get the color for a given scenario name:
+Color _getScenarioColor(String scenarioName) {
+  int index = scenarioNames.indexOf(scenarioName);
+  if (index == -1) {
+    // default color if scenario not found
+    return AppTheme.klooigeldBlauw;
+  }
+  return unlockedStopColors[index % unlockedStopColors.length];
+}
+
 class NotificationCard extends StatelessWidget {
   final AppNotification notification;
 
@@ -23,35 +50,34 @@ class NotificationCard extends StatelessWidget {
       case NotificationType.balanceWarning:
         return FontAwesomeIcons.exclamationTriangle;
       case NotificationType.welcome:
-        return Icons.circle; // Placeholder, will be replaced with "K"
+        return Icons.circle;
       default:
         return FontAwesomeIcons.solidBell;
-    }
-  }
-
-  Color _getIconColor(NotificationType type) {
-    switch (type) {
-      case NotificationType.unlockedGameScenario:
-        return AppTheme.klooigeldBlauw;
-      case NotificationType.klaroAlert:
-        return AppTheme.klooigeldGroen;
-      case NotificationType.paymentReminder:
-        return AppTheme.klooigeldRoze;
-      case NotificationType.promotionalOffer:
-        return AppTheme.klooigeldPaars;
-      case NotificationType.balanceWarning:
-        return Colors.red;
-      case NotificationType.welcome:
-        return AppTheme.klooigeldPaars; // Assign a suitable color for welcome
-      default:
-        return AppTheme.klooigeldBlauw;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isWelcome = notification.type == NotificationType.welcome;
-    final iconColor = _getIconColor(notification.type);
+
+    // If scenarioName is available and type is unlockedGameScenario, use that scenario's color.
+    // Otherwise, fall back to original logic.
+    Color iconColor;
+    if (notification.type == NotificationType.unlockedGameScenario && notification.scenarioName != null) {
+      iconColor = _getScenarioColor(notification.scenarioName!);
+    } else if (notification.type == NotificationType.klaroAlert) {
+      iconColor = AppTheme.klooigeldGroen;
+    } else if (notification.type == NotificationType.paymentReminder) {
+      iconColor = AppTheme.klooigeldRoze;
+    } else if (notification.type == NotificationType.promotionalOffer) {
+      iconColor = AppTheme.klooigeldPaars;
+    } else if (notification.type == NotificationType.balanceWarning) {
+      iconColor = Colors.red;
+    } else if (notification.type == NotificationType.welcome) {
+      iconColor = AppTheme.klooigeldPaars;
+    } else {
+      iconColor = AppTheme.klooigeldBlauw;
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -60,14 +86,14 @@ class NotificationCard extends StatelessWidget {
         children: [
           // Icon or "K" Text
           SizedBox(
-            width: 24, // Fixed width for icon area
-            height: 24, // Fixed height for icon area
+            width: 24,
+            height: 24,
             child: isWelcome
                 ? Text(
                     'K',
                     style: TextStyle(
-                      fontFamily: AppTheme.logoFont1, // Use the AppTheme.logo font style
-                      fontSize: 24, // Same size as icons
+                      fontFamily: AppTheme.logoFont1,
+                      fontSize: 24,
                       color: iconColor,
                     ),
                     textAlign: TextAlign.center,
@@ -75,7 +101,7 @@ class NotificationCard extends StatelessWidget {
                 : FaIcon(
                     _getIcon(notification.type),
                     color: iconColor,
-                    size: 24, // Consistent size
+                    size: 24,
                   ),
           ),
           const SizedBox(width: 12),

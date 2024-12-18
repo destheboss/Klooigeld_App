@@ -1,5 +1,3 @@
-// lib/main.dart
-
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -70,11 +68,8 @@ class _PrecacheAndLoadScreenState extends State<PrecacheAndLoadScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     _hasSeenIntroduction = prefs.getBool('hasSeenIntroduction') ?? false;
 
-    // Mock notifications for demonstration if no notifications exist
-    NotificationService notificationService = Provider.of<NotificationService>(context, listen: false);
-    if (notificationService.notifications.isEmpty) {
-      await notificationService.mockNotifications();
-    }
+    // NOTE: Removed mock notification calls. Notifications will now be added dynamically.
+    // If needed, ensure the welcome notification is added by NotificationService itself on first run.
 
     setState(() {
       _isLoading = false;

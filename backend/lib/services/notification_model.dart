@@ -2,11 +2,11 @@
 
 enum NotificationType {
   unlockedGameScenario,
-  klaroAlert, // Replaced BNPL with Klaro
+  klaroAlert,
   paymentReminder,
   promotionalOffer,
   balanceWarning,
-  welcome, // Added welcome notification type
+  welcome,
 }
 
 class AppNotification {
@@ -16,6 +16,7 @@ class AppNotification {
   final NotificationType type;
   final DateTime timestamp;
   bool isRead;
+  final String? scenarioName; // NEW: Scenario name for scenario-based notifications
 
   AppNotification({
     required this.id,
@@ -24,9 +25,9 @@ class AppNotification {
     required this.type,
     required this.timestamp,
     this.isRead = false,
+    this.scenarioName,
   });
 
-  // Convert notification to a Map for persistence
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -35,10 +36,10 @@ class AppNotification {
       'type': type.index,
       'timestamp': timestamp.toIso8601String(),
       'isRead': isRead,
+      'scenarioName': scenarioName,
     };
   }
 
-  // Create a notification from a Map
   factory AppNotification.fromMap(Map<String, dynamic> map) {
     return AppNotification(
       id: map['id'],
@@ -47,6 +48,7 @@ class AppNotification {
       type: NotificationType.values[map['type']],
       timestamp: DateTime.parse(map['timestamp']),
       isRead: map['isRead'],
+      scenarioName: map['scenarioName'],
     );
   }
 }

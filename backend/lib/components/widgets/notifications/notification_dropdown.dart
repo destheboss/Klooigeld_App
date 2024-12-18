@@ -1,5 +1,3 @@
-// lib/components/widgets/notifications/notification_dropdown.dart
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +6,7 @@ import '../../../services/notification_service.dart';
 import '../../../services/notification_model.dart';
 import '../../../theme/app_theme.dart';
 import 'notification_card.dart';
+import '../../../../screens/(learning_road)/learning-road_screen.dart'; // Import to navigate
 
 class NotificationDropdown extends StatefulWidget {
   final VoidCallback onClose;
@@ -25,11 +24,10 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
   @override
   void initState() {
     super.initState();
-    // Start a timer that triggers every 3 seconds to update timestamps
     _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (mounted) {
         setState(() {
-          // Trigger a rebuild to update timestamps
+          // Trigger rebuild to update timestamps
         });
       }
     });
@@ -38,14 +36,14 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
   @override
   void dispose() {
     _scrollController.dispose();
-    _timer?.cancel(); // Cancel the timer to prevent memory leaks
+    _timer?.cancel();
     super.dispose();
   }
 
   void _scrollDown() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
-        _scrollController.offset + 100, // Scroll down by 100 pixels
+        _scrollController.offset + 100,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
@@ -59,11 +57,9 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
       behavior: HitTestBehavior.opaque,
       child: Stack(
         children: [
-          // Transparent overlay
           Container(
             color: Colors.transparent,
           ),
-          // Notification container
           Positioned(
             right: 20,
             top: 60,
@@ -81,7 +77,6 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Header with "Notifications" and "Clear" text
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         child: Consumer<NotificationService>(
@@ -101,7 +96,6 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
                                   GestureDetector(
                                     onTap: () async {
                                       await notificationService.deleteAllNotifications();
-                                      // Optionally, you can add a confirmation message here
                                     },
                                     child: Text(
                                       'Clear',
@@ -117,14 +111,13 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
                           },
                         ),
                       ),
-                      // Notification List or "No Notifications" Message
                       Consumer<NotificationService>(
                         builder: (context, notificationService, child) {
                           List<AppNotification> notifications = notificationService.notifications;
 
                           if (notifications.isEmpty) {
                             return Container(
-                              height: 150, // Fixed height for "No Notifications"
+                              height: 150,
                               alignment: Alignment.center,
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
@@ -149,11 +142,9 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
                             );
                           }
 
-                          // Calculate dynamic height: each NotificationCard is approx 90 height
                           double cardHeight = 95.0;
                           int visibleCount = notifications.length > 3 ? 3 : notifications.length;
-                          double dropdownHeight = visibleCount * cardHeight + 16; // padding
-
+                          double dropdownHeight = visibleCount * cardHeight + 16;
                           bool hasMore = notifications.length > 3;
 
                           return Column(
@@ -189,13 +180,17 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
                                       ),
                                       onDismissed: (direction) {
                                         notificationService.deleteNotification(notif.id);
-                                        // Removed snackbar
                                       },
                                       child: GestureDetector(
                                         onTap: () async {
                                           await notificationService.markAsRead(notif.id);
-                                          // Optionally, navigate to relevant screen based on notification type
-                                          // For now, just mark as read
+                                          // Navigate if this is an Unlocked Game Scenario notification
+                                          if (notif.type == NotificationType.unlockedGameScenario) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(builder: (context) => const LearningRoadScreen()),
+                                            );
+                                          }
                                         },
                                         child: NotificationCard(notification: notif),
                                       ),
@@ -234,7 +229,6 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
     );
   }
 
-  // Helper method to get background color based on notification type
   Color _getBackgroundColor(NotificationType type) {
     switch (type) {
       case NotificationType.unlockedGameScenario:
@@ -248,7 +242,7 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
       case NotificationType.balanceWarning:
         return Colors.red;
       case NotificationType.welcome:
-        return AppTheme.klooigeldPaars; // Assign a suitable color for welcome
+        return AppTheme.klooigeldPaars;
       default:
         return AppTheme.klooigeldBlauw;
     }

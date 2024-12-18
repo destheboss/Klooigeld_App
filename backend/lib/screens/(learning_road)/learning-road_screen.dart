@@ -10,7 +10,10 @@ import 'package:backend/screens/(learning_road)/widgets/stop_widget.dart';
 import 'package:backend/screens/(tips)/tips_screen.dart';
 import 'package:backend/theme/app_theme.dart';
 import 'package:backend/features/scenarios/buy_now_pay_later_scenario_screen.dart';
-import '../../main.dart'; // To access the global routeObserver
+import 'package:provider/provider.dart'; // ADDED to access NotificationService
+import '../../main.dart';
+import '../../services/notification_service.dart'; // ADDED to send notifications
+import '../../services/notification_model.dart'; // For NotificationType
 
 class LearningRoadScreen extends StatefulWidget {
   const LearningRoadScreen({Key? key}) : super(key: key);
@@ -136,42 +139,80 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
 
   /// Called when the current route has been popped back to.
   @override
-  void didPopNext() {
-    _refreshUnlockedLevels();
+  void didPopNext() async {
+    // Store the old unlockedIndex before refreshing
+    int oldUnlockedIndex = unlockedIndex;
+    await _refreshUnlockedLevels();
+    // After refresh, compare old and new unlockedIndex
+    if (unlockedIndex > oldUnlockedIndex && unlockedIndex > 0 && unlockedIndex < stops.length) {
+      debugPrint("A new scenario was unlocked by returning from the scenario screen. unlockedIndex=$unlockedIndex");
+      final notificationService = Provider.of<NotificationService>(context, listen: false);
+      final scenarioName = stops[unlockedIndex]['title'];
+      String scenarioMsg = _getScenarioSpecificMessage(scenarioName);
+      await notificationService.addNotification(
+        title: 'Fresh Scenario Dropped!',
+        message: "Congrats! You just unlocked '$scenarioName'. $scenarioMsg",
+        type: NotificationType.unlockedGameScenario,
+        scenarioName: scenarioName, // ADD scenarioName here
+      );
+      debugPrint("Notification sent successfully for unlocked scenario at index $unlockedIndex.");
+    }
   }
 
-  Future<void> _loadProgress() async {
-    _prefs = await SharedPreferences.getInstance();
-    unlockedIndex = _prefs.getInt('unlockedLevelIndex') ?? 0;
+  // screens/(learning_road)/learning-road_screen.dart
+// Only showing the changed/added part related to BNPL initial notification sending.
+// Place this logic at the end of _loadProgress() after setState.
 
-    if (unlockedIndex < 0 || unlockedIndex >= stops.length) {
-      unlockedIndex = 0;
-    }
+Future<void> _loadProgress() async {
+  _prefs = await SharedPreferences.getInstance();
+  unlockedIndex = _prefs.getInt('unlockedLevelIndex') ?? 0;
 
-    // Unlock icons for levels up to unlockedIndex
-    for (int i = 0; i <= unlockedIndex && i < stops.length; i++) {
-      stops[i]['status'] = 'unlocked';
-      stops[i]['icon'] =
-          i == 0 ? Icons.credit_card : financeIcons[(i - 1) % financeIcons.length];
-    }
-
-    double initialValue = unlockedIndex / stops.length;
-    initialProgress = initialValue;
-
-    _iconPositionAnimation = Tween<double>(
-      begin: unlockedIndex / (stops.length - 1),
-      end: unlockedIndex / (stops.length - 1),
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-
-    _animation = Tween<double>(begin: initialValue, end: initialValue).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-
-    setState(() {
-      _controller.value = initialValue;
-      _isLoading = false;
-    });
+  if (unlockedIndex < 0 || unlockedIndex >= stops.length) {
+    unlockedIndex = 0;
   }
+
+  for (int i = 0; i <= unlockedIndex && i < stops.length; i++) {
+    stops[i]['status'] = 'unlocked';
+    stops[i]['icon'] =
+        i == 0 ? Icons.credit_card : financeIcons[(i - 1) % financeIcons.length];
+  }
+
+  double initialValue = unlockedIndex / stops.length;
+  initialProgress = initialValue;
+
+  _iconPositionAnimation = Tween<double>(
+    begin: unlockedIndex / (stops.length - 1),
+    end: unlockedIndex / (stops.length - 1),
+  ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+  _animation = Tween<double>(begin: initialValue, end: initialValue).animate(
+    CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+  );
+
+  setState(() {
+    _controller.value = initialValue;
+    _isLoading = false;
+  });
+
+  // NEW: If BNPL scenario (index=0) is unlocked by default, send notification if not sent yet.
+  if (unlockedIndex >= 0) {
+    bool bnplNotiSent = _prefs.getBool('bnpl_notification_sent') ?? false;
+    if (!bnplNotiSent) {
+      final notificationService = Provider.of<NotificationService>(context, listen: false);
+      final scenarioName = stops[0]['title']; // BNPL scenario is first scenario
+      String scenarioMsg = _getScenarioSpecificMessage(scenarioName);
+      await notificationService.addNotification(
+        title: 'Fresh Scenario Dropped!',
+        message: "Congrats! You just unlocked '$scenarioName'. $scenarioMsg",
+        type: NotificationType.unlockedGameScenario,
+        scenarioName: scenarioName,
+      );
+      await _prefs.setBool('bnpl_notification_sent', true);
+      debugPrint("BNPL scenario notification sent at startup.");
+    }
+  }
+}
+
 
   Future<void> _refreshUnlockedLevels() async {
     // Reload progress from SharedPreferences
@@ -243,7 +284,7 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
               .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
         });
 
-        _controller.forward(from: 0).then((_) {
+        _controller.forward(from: 0).then((_) async {
           setState(() {
             unlockedIndex++;
             stops[unlockedIndex]['status'] = 'unlocked';
@@ -251,8 +292,41 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                 financeIcons[(unlockedIndex - 1) % financeIcons.length];
             _saveProgress();
           });
+
+          if (unlockedIndex > 0 && unlockedIndex < stops.length) {
+            final notificationService = Provider.of<NotificationService>(context, listen: false);
+            final scenarioName = stops[unlockedIndex]['title'];
+            String scenarioMsg = _getScenarioSpecificMessage(scenarioName);
+            // In unlockNextStop():
+            await notificationService.addNotification(
+              title: 'Fresh Scenario Dropped!',
+              message: "Congrats! You just unlocked '$scenarioName'. $scenarioMsg",
+              type: NotificationType.unlockedGameScenario,
+              scenarioName: scenarioName, // ADD scenarioName here
+            );
+          }
         });
       });
+    }
+  }
+
+  // Helper method to return scenario-specific messages:
+  String _getScenarioSpecificMessage(String scenarioName) {
+    switch (scenarioName) {
+      case "Buy Now, Pay Later":
+        return "Time to flex those delayed payment skills!";
+      case "Saving":
+        return "Stack that cash and watch it grow!";
+      case "Gambling Basics":
+        return "Play smart and stay in control!";
+      case "Insurances":
+        return "Guard your future like a pro!";
+      case "Loans":
+        return "Handle borrowed dough like a boss!";
+      case "Investing":
+        return "Level up your finance game!";
+      default:
+        return "Get in and own your money journey!";
     }
   }
 
@@ -275,7 +349,6 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
 
   /// BNPL TIPS CHECK
   Future<bool> _checkTipsRead() async {
-    // "tip_category_progress_0" for BNPL tips
     double progress = _prefs.getDouble('tip_category_progress_0') ?? 0.0;
     if (progress < 1.0) {
       bool? result = await showDialog<bool>(
@@ -385,7 +458,6 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
   void _showLevelDialog(String title, IconData icon, String info, Widget? screen) async {
     bool isBuyNowPayLaterCompleted = false;
 
-    // Check if BNPL was previously completed
     if (title == "Buy Now, Pay Later") {
       isBuyNowPayLaterCompleted =
           _prefs.getBool('scenario_buynowpaylater_completed') ?? false;
@@ -461,13 +533,10 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                       onPressed: () async {
                         Navigator.pop(context); // Close dialog
                         if (title == "Buy Now, Pay Later") {
-                          // If BNPL scenario was completed, user will "PLAY AGAIN" or attempt a single "TRY AGAIN"
                           if (isBuyNowPayLaterCompleted) {
-                            // Clear scenario ephemeral progress to start a fresh replay / try again
                             await _clearBuyNowPayLaterProgress();
                           }
 
-                          // Check if BNPL tips have been read
                           bool canProceed = await _checkTipsRead();
                           if (!canProceed) return;
 
@@ -477,26 +546,22 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                               builder: (context) => const BuyNowPayLaterScenarioScreen(),
                             ),
                           ).then((result) {
-                            // After returning from the scenario screen, refresh unlocked levels
                             if (result == true) {
                               _refreshUnlockedLevels();
                             }
                           });
                         } else if (screen != null) {
-                          // Navigate to the associated screen
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => screen,
                             ),
                           ).then((result) {
-                            // After returning from the screen, refresh unlocked levels
                             if (result == true) {
                               _refreshUnlockedLevels();
                             }
                           });
                         } else {
-                          // Show level in development overlay
                           _showDevelopmentOverlay();
                         }
                       },
@@ -505,7 +570,6 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),
                       ),
-                      // If scenario was completed, display "PLAY AGAIN", else "PLAY"
                       child: Text(
                         title == "Buy Now, Pay Later"
                             ? (isBuyNowPayLaterCompleted ? "PLAY AGAIN" : "PLAY")
@@ -527,7 +591,6 @@ class _LearningRoadScreenState extends State<LearningRoadScreen>
   }
 
   Future<void> _clearBuyNowPayLaterProgress() async {
-    // Clear scenario ephemeral progress to start a fresh replay / try again
     await _prefs.remove('scenario_buynowpaylater_chatMessages');
     await _prefs.remove('scenario_buynowpaylater_tempBalance');
     await _prefs.remove('scenario_buynowpaylater_currentStep');
