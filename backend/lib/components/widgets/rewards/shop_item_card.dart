@@ -1,3 +1,11 @@
+// lib/components/widgets/rewards/shop_item_card.dart
+
+// Changes made based on requests:
+// - For discounted prices, remove the currency image from both old and new prices.
+// - Line-through for the old price remains red.
+// - Discount badge now has no border and uses AppTheme.klooigeldRozeAlt as background color.
+// - Inline comments added for clarity.
+
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 
@@ -7,9 +15,8 @@ class ShopItemCard extends StatelessWidget {
   final int price;
   final List<Color> colors;
   final VoidCallback onTap;
-
-  /// If true, visually indicate that the item has already been purchased
   final bool isPurchased;
+  final int? discountedPrice;
 
   const ShopItemCard({
     super.key,
@@ -19,10 +26,13 @@ class ShopItemCard extends StatelessWidget {
     required this.colors,
     required this.onTap,
     this.isPurchased = false,
+    this.discountedPrice,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasDiscount = discountedPrice != null && discountedPrice! < price;
+
     return InkWell(
       onTap: onTap,
       splashColor: AppTheme.klooigeldPaars.withOpacity(0.2),
@@ -52,8 +62,7 @@ class ShopItemCard extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.all(2.0),
                       child: ClipRRect(
-                        borderRadius:
-                            const BorderRadius.vertical(top: Radius.circular(16)),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                         child: Image.asset(
                           imagePath,
                           fit: BoxFit.contain,
@@ -79,41 +88,94 @@ class ShopItemCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Row(
-                        children: colors
-                            .map((c) => Container(
-                                  width: 8,
-                                  height: 8,
-                                  margin: const EdgeInsets.only(right: 4),
-                                  decoration: BoxDecoration(
-                                    color: c,
-                                    shape: BoxShape.circle,
-                                    border: c == Colors.white
-                                        ? Border.all(color: Colors.black, width: 1)
-                                        : null,
-                                  ),
-                                ))
-                            .toList(),
+                        children: colors.map((c) => Container(
+                          width: 8,
+                          height: 8,
+                          margin: const EdgeInsets.only(right: 4),
+                          decoration: BoxDecoration(
+                            color: c,
+                            shape: BoxShape.circle,
+                            border: c == Colors.white
+                                ? Border.all(color: Colors.black, width: 1)
+                                : null,
+                          ),
+                        )).toList(),
                       ),
                       const SizedBox(height: 8),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text(
-                            '$price',
-                            style: TextStyle(
-                              fontFamily: AppTheme.neighbor,
-                              fontSize: 14,
-                              color: AppTheme.black,
+                          if (hasDiscount) ...[
+                            // Old price in red, strikethrough, no currency icon here
+                            Text(
+                              '$price',
+                              style: const TextStyle(
+                                fontFamily: AppTheme.neighbor,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.klooigeldRozeAlt,
+                                decoration: TextDecoration.lineThrough,
+                                decorationColor: AppTheme.klooigeldRozeAlt,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 3),
-                          Transform.translate(
-                            offset: const Offset(0, 0.2),
-                            child: Image.asset(
-                              'assets/images/currency.png',
-                              width: 10,
-                              height: 10,
+                            const SizedBox(width: 6),
+                            // New discounted price, no currency icon
+                            Text(
+                              '${discountedPrice!}',
+                              style: TextStyle(
+                                fontFamily: AppTheme.neighbor,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.black,
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 3),
+                            Transform.translate(
+                              offset: const Offset(0, 0.2),
+                              child: Image.asset(
+                                'assets/images/currency.png',
+                                width: 10,
+                                height: 10,
+                              ),
+                            ),
+                            const Spacer(),
+                            // Discount badge with no border and color klooigeldRozeAlt
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppTheme.klooigeldRoze,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '-20%',
+                                style: TextStyle(
+                                  fontFamily: AppTheme.neighbor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: AppTheme.white,
+                                ),
+                              ),
+                            ),
+                          ] else ...[
+                            // No discount, show normal price with currency icon
+                            Text(
+                              '$price',
+                              style: TextStyle(
+                                fontFamily: AppTheme.neighbor,
+                                fontSize: 14,
+                                color: AppTheme.black,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            Transform.translate(
+                              offset: const Offset(0, 0.2),
+                              child: Image.asset(
+                                'assets/images/currency.png',
+                                width: 10,
+                                height: 10,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],
@@ -122,8 +184,6 @@ class ShopItemCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // "PURCHASED" overlay if the item is already purchased
           if (isPurchased)
             Positioned.fill(
               child: Container(

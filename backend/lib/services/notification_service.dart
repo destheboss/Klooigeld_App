@@ -1,8 +1,13 @@
 // lib/services/notification_service.dart
 
-// Changes:
-// - Renamed Klaro Payment Reminder to "Klaro Reminder"
-// - Renamed Klaro Payment Failed to "Klaro Failed"
+// Explanation of changes:
+// - After adding the welcome notification on first launch, we now also add a promotional offer notification.
+// - This promotional offer notification will appear only once, right after the welcome notification.
+// - We store a boolean in SharedPreferences indicating that the promotional offer has been shown,
+//   so it won't be shown again on subsequent launches.
+// - The promotional offer applies discounts to certain shop items (shoes).
+// - This integration ensures that when the user enters the shop screen,
+//   they can see discounted prices for items in the "shoes" category.
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -14,6 +19,7 @@ import 'transaction_service.dart';
 class NotificationService extends ChangeNotifier {
   static const String _prefsKey = 'app_notifications';
   static const String _firstTimeKey = 'is_first_time';
+  static const String _promoOfferKey = 'promo_offer_shown'; // NEW: track if promo offer shown
   List<AppNotification> _notifications = [];
 
   List<AppNotification> get notifications => _notifications;
@@ -35,9 +41,18 @@ class NotificationService extends ChangeNotifier {
     }).toList();
 
     bool isFirstTime = prefs.getBool(_firstTimeKey) ?? true;
+    bool promoOfferShown = prefs.getBool(_promoOfferKey) ?? false;
+
     if (isFirstTime) {
+      // Add welcome notification
       await addWelcomeNotification();
       await prefs.setBool(_firstTimeKey, false);
+
+      // Immediately after welcome, add the promotional offer notification if not already shown
+      if (!promoOfferShown) {
+        await addPromotionalOfferNotification();
+        await prefs.setBool(_promoOfferKey, true);
+      }
     }
 
     await _checkPendingKlaroTransactions();
@@ -92,6 +107,15 @@ class NotificationService extends ChangeNotifier {
     _notifications.insert(0, welcomeNotification);
     await _saveNotifications();
     notifyListeners();
+  }
+
+  // NEW: Add Promotional Offer Notification after the welcome notification.
+  Future<void> addPromotionalOfferNotification() async {
+    await addNotification(
+      title: 'Special Promotional Offer!',
+      message: 'Limited-time discounts on all shoes! Visit the shop now.',
+      type: NotificationType.promotionalOffer,
+    );
   }
 
   Future<void> markAsRead(String id) async {

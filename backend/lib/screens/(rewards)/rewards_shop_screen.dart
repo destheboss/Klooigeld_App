@@ -1,5 +1,15 @@
+// lib/screens/(rewards)/rewards_shop_screen.dart
+
+// Explanation of changes:
+// - We now load a flag from SharedPreferences to determine if the promotional offer is active.
+// - If active, we apply a 20% discount to all items in the "shoes" category (categoryId == 1).
+// - For discounted items, we will pass both original and discounted prices to the ShopItemCard,
+//   so it can display the old price (crossed out) and the new discounted price.
+// - We maintain compatibility with existing functionality by only applying discounts if promo is active.
+// - Inline comments added where changes were made.
+
 import 'dart:async';
-import 'dart:convert';  // For jsonEncode/Decode if we store transaction objects in SharedPreferences
+import 'dart:convert';  
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,9 +27,6 @@ class RewardsShopScreen extends StatefulWidget {
   final VoidCallback? onClose;
   final ValueChanged<int>? onKlooicashUpdate;
   final int? initialBalance;
-
-  /// Indicates whether this purchase session should be ephemeral (e.g., scenario replay).
-  /// If `true`, items bought do NOT get permanently added to the transactions list.
   final bool isEphemeral;
 
   const RewardsShopScreen({
@@ -52,12 +59,13 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
   ShopItem? _selectedItemForPurchase;
 
   int _klooicash = 500;
-  Set<int> _alreadyOwnedItems = {};      // items purchased in earlier sessions
-  Set<int> _purchasedThisSession = {};   // items purchased *now*, returned to caller
+  Set<int> _alreadyOwnedItems = {};
+  Set<int> _purchasedThisSession = {};
 
-  /// Key for a dedicated ScaffoldMessenger inside the modal so the snack bar
-  /// won't appear behind the modal.
   final GlobalKey<ScaffoldMessengerState> _modalMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
+  // NEW: Track if promotional offer is active
+  bool _promotionalOfferActive = false;
 
   @override
   void initState() {
@@ -72,7 +80,6 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
       );
     }
 
-    // If this is a scenario modal specifically for category #4 (quests), limit categories/items
     if (widget.isModal && widget.initialCategoryId == 4) {
       _categories = _categories.where((c) => c.id == 4).toList();
       if (_categories.isNotEmpty) {
@@ -84,31 +91,33 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     _loadData();
 
     _searchFocusNode.addListener(() {
-      setState(() {}); // rebuild UI if focus changes
+      setState(() {});
     });
   }
 
   Future<void> _loadData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    // Use scenario-provided ephemeral balance if present, else user’s normal balance
     if (widget.initialBalance != null) {
       _klooicash = widget.initialBalance!;
     } else {
       _klooicash = prefs.getInt('klooicash') ?? 500;
     }
 
-    // Items purchased in the past (permanent)
     final storedItems = prefs.getStringList('purchasedItems') ?? [];
     _alreadyOwnedItems = storedItems.map((e) => int.parse(e)).toSet();
+
+    // NEW: Check if promotional offer was shown (in NotificationService) and is active
+    // If the promoOfferKey was set to true, promotional offers apply.
+    bool promoOfferShown = prefs.getBool('promo_offer_shown') ?? false;
+    _promotionalOfferActive = promoOfferShown;
 
     setState(() {});
   }
 
   Future<bool> _onWillPop() async {
-    // Return the IDs of items purchased in *this* session back to the caller
     Navigator.pop(context, _purchasedThisSession);
-    return false; // prevent default pop since we already called Navigator.pop
+    return false;
   }
 
   void _onSearchChanged(String query) {
@@ -125,7 +134,6 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
       _filteredItems = _allItems.where((item) {
         final matchesName = item.name.toLowerCase().contains(query);
 
-        // If scenario modal with categoryId=4, only show category #4 items
         if (widget.isModal && widget.initialCategoryId == 4 && item.categoryId != 4) {
           return false;
         }
@@ -144,7 +152,6 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
   }
 
   void _clearCategorySelection() {
-    // Only allow clearing category if not restricted by isModal
     if (!widget.isModal) {
       setState(() {
         _selectedCategory = null;
@@ -165,80 +172,67 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     }
   }
 
-  /// Called when user confirms buying an item in the overlay
   Future<void> _onBuyPressed() async {
     if (_selectedItemForPurchase == null) return;
     final item = _selectedItemForPurchase!;
 
-    _klooicash -= item.price;
+    final effectivePrice = _getEffectivePrice(item); // NEW: Get discounted price if applicable
+
+    _klooicash -= effectivePrice;
     _purchasedThisSession.add(item.id);
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     if (!widget.isEphemeral) {
-      // PERMANENT purchase
-      // 1) Add to permanent purchasedItems
       List<String> storedItems = prefs.getStringList('purchasedItems') ?? [];
       if (!storedItems.contains(item.id.toString())) {
         storedItems.add(item.id.toString());
         await prefs.setStringList('purchasedItems', storedItems);
       }
 
-      // 2) Deduct from main user balance
       if (widget.initialBalance == null) {
         await prefs.setInt('klooicash', _klooicash);
       }
 
-      // 3) Record this transaction in user’s transaction log
       await _addTransaction(
         description: item.name.toUpperCase(),
-        amount: -item.price,
+        amount: -effectivePrice,
       );
     }
 
-    // If ephemeral, we do NOT record a permanent transaction.
-
-    // Notify scenario or parent UI of new ephemeral balance
     widget.onKlooicashUpdate?.call(_klooicash);
 
     _hidePurchaseOverlay();
     setState(() {});
   }
 
-  /// Append a new transaction to the persistent transaction list
   Future<void> _addTransaction({
     required String description,
     required int amount,
   }) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    // Load existing transactions
     final rawList = prefs.getStringList('user_transactions') ?? [];
     final List<TransactionRecord> existing = rawList.map((e) {
       final map = jsonDecode(e) as Map<String, dynamic>;
       return TransactionRecord.fromJson(map);
     }).toList();
 
-    // Create new transaction with current date in YYYY-MM-DD format
     final now = DateTime.now();
     final dateString = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
     final newTx = TransactionRecord(
       description: description,
-      amount: amount, // negative for purchase
+      amount: amount,
       date: dateString,
     );
-    existing.insert(0, newTx); // Insert at top
+    existing.insert(0, newTx);
 
-    // Persist to SharedPreferences
     final newRawList = existing.map((tx) => jsonEncode(tx.toJson())).toList();
     await prefs.setStringList('user_transactions', newRawList);
   }
 
-  /// If item is already purchased, show an alert ONLY in the modal’s local context if isModal == true.
   void _showPurchaseOverlay(ShopItem item) {
     final alreadyOwned = _alreadyOwnedItems.contains(item.id) || _purchasedThisSession.contains(item.id);
     if (alreadyOwned) {
-      // Show a snack bar alert. If in modal mode, show in local scaffold messenger.
       if (widget.isModal) {
         _modalMessengerKey.currentState?.removeCurrentSnackBar();
         _modalMessengerKey.currentState?.showSnackBar(
@@ -272,7 +266,6 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
           ),
         );
       } else {
-        // If not modal, use the normal ScaffoldMessenger.
         ScaffoldMessenger.of(context).removeCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -321,6 +314,15 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     });
   }
 
+  // NEW: Calculate the effective price after discount if promotionalOfferActive
+  // We apply a 20% discount to categoryId == 1 (shoes).
+  int _getEffectivePrice(ShopItem item) {
+    if (_promotionalOfferActive && item.categoryId == 1) {
+      return (item.price * 0.8).round(); // 20% discount
+    }
+    return item.price;
+  }
+
   Widget _buildContent() {
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -331,11 +333,10 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 26),
               child: Column(
                 children: [
-                  // Header row: close button + title + balance
+                  // Header row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Close button
                       InkWell(
                         borderRadius: BorderRadius.circular(12),
                         onTap: () {
@@ -353,7 +354,6 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                           child: const Icon(Icons.chevron_left_rounded, size: 30, color: AppTheme.nearlyBlack),
                         ),
                       ),
-
                       Text(
                         'SHOP',
                         style: TextStyle(
@@ -362,8 +362,6 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                           color: AppTheme.nearlyBlack2,
                         ),
                       ),
-
-                      // If modal, show ephemeral balance
                       if (widget.isModal)
                         Row(
                           children: [
@@ -381,7 +379,6 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                           ],
                         )
                       else
-                        // Otherwise, show a popup or more menu
                         PopupMenuButton<int>(
                           onSelected: (value) {},
                           shape: RoundedRectangleBorder(
@@ -444,10 +441,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                         ),
                     ],
                   ),
-
                   const SizedBox(height: 0),
 
-                  // Category scrolling (hidden if modal locked to category #4)
                   if (!widget.isModal)
                     SizedBox(
                       height: 100,
@@ -539,7 +534,6 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
 
                   const SizedBox(height: 28),
 
-                  // Items grid
                   Expanded(
                     child: _filteredItems.isEmpty
                         ? Center(
@@ -565,13 +559,21 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                               final item = _filteredItems[index];
                               final isPurchased = _alreadyOwnedItems.contains(item.id) ||
                                   _purchasedThisSession.contains(item.id);
+
+                              // NEW: Determine prices for display
+                              final originalPrice = item.price;
+                              final discountedPrice = _promotionalOfferActive && item.categoryId == 1
+                                  ? (item.price * 0.8).round()
+                                  : null;
+
                               return ShopItemCard(
                                 name: item.name,
                                 imagePath: item.imagePath,
-                                price: item.price,
+                                price: originalPrice,
                                 colors: item.colors,
-                                isPurchased: isPurchased,
                                 onTap: () => _showPurchaseOverlay(item),
+                                isPurchased: isPurchased,
+                                discountedPrice: discountedPrice, // NEW: pass discounted price if any
                               );
                             },
                           ),
@@ -581,7 +583,6 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
             ),
           ),
 
-          // Purchase overlay
           if (_showOverlay && _selectedItemForPurchase != null)
             PurchaseOverlay(
               itemName: _selectedItemForPurchase!.name,
@@ -590,6 +591,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
               colors: _selectedItemForPurchase!.colors,
               onBuy: _onBuyPressed,
               onCancel: _hidePurchaseOverlay,
+              // NEW: Pass promotionalOfferActive and handle discount in overlay too
+              promotionalOfferActive: _promotionalOfferActive && _selectedItemForPurchase!.categoryId == 1,
             ),
         ],
       ),
@@ -598,8 +601,6 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // If we're shown as a modal, wrap content in its own Scaffold + ScaffoldMessenger
-    // so that SnackBars appear ABOVE the modal rather than behind it.
     if (widget.isModal) {
       return ScaffoldMessenger(
         key: _modalMessengerKey,
@@ -619,7 +620,6 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
         ),
       );
     } else {
-      // Full screen shop
       return GestureDetector(
         onTap: _unfocusSearch,
         child: Scaffold(

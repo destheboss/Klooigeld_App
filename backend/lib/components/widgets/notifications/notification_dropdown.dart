@@ -1,13 +1,10 @@
 // lib/components/widgets/notifications/notification_dropdown.dart
 
-// Changes:
-// - Replaced the AlertDialog with CustomDialog for payment confirmation
-// - Renamed Klaro Payment ... strings to Klaro ... strings in notifications
-// - If not enough balance, update the transaction amount by adding interest instead of adding a separate interest transaction
-// - Show bottom alert using the same styling approach as the shop's "already purchased" alert
-// - After successful payment, update klooicash and then show bottom alert
-// - Add a callback `onKlooicashUpdated` that, when triggered, forces HomeScreen to refresh by calling _refreshData()
-//   For simplicity, we can pass a callback from HomeScreen to NotificationDropdown. If not originally provided, add it now.
+// Changes based on requests:
+// - For promotionalOffer notifications, when tapped, mark as read and then navigate to the RewardsShopScreen.
+// - Change the icon color for promotionalOffer notification so it's different from welcome's klooigeldPaars.
+//   We previously used klooigeldPaars for promotionalOffer. Let's use klooigeldRozeAlt now for promotionalOffer.
+// - Inline comments added.
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -20,12 +17,13 @@ import 'notification_card.dart';
 import '../../../../screens/(learning_road)/learning-road_screen.dart';
 import '../../../services/transaction_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../main.dart'; // For routeObserver if needed
+import '../../../main.dart';
 import '../../../features/scenarios/widgets/custom_dialog.dart';
+import '../../../../screens/(rewards)/rewards_shop_screen.dart'; // Added for navigation to shop screen
 
 class NotificationDropdown extends StatefulWidget {
   final VoidCallback onClose;
-  final VoidCallback onKlooicashUpdated; // NEW: callback to refresh home screen klooicash
+  final VoidCallback onKlooicashUpdated;
 
   const NotificationDropdown({Key? key, required this.onClose, required this.onKlooicashUpdated}) : super(key: key);
 
@@ -77,7 +75,6 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
   }
 
   Future<void> _showBottomAlert(String message) async {
-    // Show a bottom alert styled similarly to "Item already purchased"
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -111,134 +108,118 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
     );
   }
 
-  // NEW: Handle Klaro Payment Attempt using CustomDialog
-Future<void> _attemptKlaroPayment(
-  String transactionDescription,
-  NotificationService notificationService,
-  AppNotification notif,
-) async {
-  int currentBalance = await _getCurrentKlooicash();
+  Future<void> _attemptKlaroPayment(
+    String transactionDescription,
+    NotificationService notificationService,
+    AppNotification notif,
+  ) async {
+    int currentBalance = await _getCurrentKlooicash();
 
-  final pending = await TransactionService.getPendingKlaroTransactions();
-  final tx = pending.firstWhere(
-    (t) => t.description == transactionDescription,
-    orElse: () => TransactionRecord(description: '', amount: 0, date: ''),
-  );
+    final pending = await TransactionService.getPendingKlaroTransactions();
+    final tx = pending.firstWhere(
+      (t) => t.description == transactionDescription,
+      orElse: () => TransactionRecord(description: '', amount: 0, date: ''),
+    );
 
-  if (tx.description.isEmpty) {
-    // No matching transaction found, just mark notification read.
-    await notificationService.markAsRead(notif.id);
-    return;
-  }
+    if (tx.description.isEmpty) {
+      // No matching transaction found, just mark notification read.
+      await notificationService.markAsRead(notif.id);
+      return;
+    }
 
-  final cost = tx.amount.abs(); // e.g., 700K
-  // Show CustomDialog for payment confirmation
-  bool? payNow = await showDialog<bool>(
-  context: context,
-  builder: (ctx) => CustomDialog(
-    icon: FontAwesomeIcons.moneyCheckAlt,
-    title: "Pay Klaro Debt",
-    content: "You owe **${tx.description}** for **${cost}K**. Pay now?",
-    actions: [
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.klooigeldRozeAlt, // Changed to klooigeldGreen
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+    final cost = tx.amount.abs();
+    bool? payNow = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => CustomDialog(
+        icon: FontAwesomeIcons.moneyCheckAlt,
+        title: "Pay Klaro Debt",
+        content: "You owe **${tx.description}** for **${cost}K**. Pay now?",
+        actions: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.klooigeldRozeAlt,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(
+                      fontFamily: AppTheme.neighbor,
+                      fontSize: 16,
+                      color: AppTheme.white,
+                    ),
+                  ),
                 ),
               ),
-              child: const Text(
-                "Cancel",
-                style: TextStyle(
-                  fontFamily: AppTheme.neighbor,
-                  fontSize: 16,
-                  color: AppTheme.white,
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.klooigeldGroen,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    "Pay",
+                    style: TextStyle(
+                      fontFamily: AppTheme.neighbor,
+                      fontSize: 16,
+                      color: AppTheme.white,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.klooigeldGroen, // Changed to klooigeldGreen
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                "Pay",
-                style: TextStyle(
-                  fontFamily: AppTheme.neighbor,
-                  fontSize: 16,
-                  color: AppTheme.white,
-                ),
-              ),
-            ),
+            ],
           ),
         ],
+        closeValue: false,
+        borderColor: AppTheme.klooigeldGroen,
+        iconColor: AppTheme.klooigeldGroen,
+        closeButtonColor: AppTheme.klooigeldGroen,
       ),
-    ],
-    closeValue: false,
-    borderColor: AppTheme.klooigeldGroen,       // Set border color to klooigeldGreen
-    iconColor: AppTheme.klooigeldGroen,         // Set icon color to klooigeldGreen
-    closeButtonColor: AppTheme.klooigeldGroen,  // Set close button color to klooigeldGreen
-  ),
-);
+    );
 
-  if (payNow == true) {
-    if (currentBalance >= cost) {
-      // Sufficient funds, pay it off
-      final newBalance = currentBalance - cost;
-      await _setCurrentKlooicash(newBalance);
-      await TransactionService.payKlaroTransaction(transactionDescription);
+    if (payNow == true) {
+      if (currentBalance >= cost) {
+        final newBalance = currentBalance - cost;
+        await _setCurrentKlooicash(newBalance);
+        await TransactionService.payKlaroTransaction(transactionDescription);
 
-      // Mark notification read and remove it (since it's paid)
-      await notificationService.markAsRead(notif.id);
-      await notificationService.deleteNotification(notif.id);
+        await notificationService.markAsRead(notif.id);
+        await notificationService.deleteNotification(notif.id);
 
-      // Refresh home screen balance
-      widget.onKlooicashUpdated();
+        widget.onKlooicashUpdated();
 
-      // Show bottom alert for success
-      _showBottomAlert("Payment successful!");
+        _showBottomAlert("Payment successful!");
+      } else {
+        final newCost = (cost * 1.1).round();
+        final difference = newCost - cost;
+
+        final updatedTx = TransactionRecord(
+          description: tx.description,
+          amount: -newCost,
+          date: tx.date,
+        );
+
+        await TransactionService.updateTransaction(tx, updatedTx);
+
+        await notificationService.markAsRead(notif.id);
+        await notificationService.addKlaroInterestNotification(updatedTx);
+
+        _showBottomAlert("Not enough funds! Debt increased by ${difference}K");
+      }
     } else {
-      // Insufficient funds, add interest (e.g., 10% interest)
-      // New amount = cost * 1.1
-      final newCost = (cost * 1.1).round();
-      final difference = newCost - cost;
-
-      // Update the existing pending transaction with the new amount
-      final updatedTx = TransactionRecord(
-        description: tx.description,
-        amount: -newCost, // keep negative since it's a debt
-        date: tx.date,
-      );
-
-      await TransactionService.updateTransaction(tx, updatedTx);
-
-      // Mark old notification as read
-      await notificationService.markAsRead(notif.id);
-
-      // Add a Klaro Failed notification
-      await notificationService.addKlaroInterestNotification(updatedTx);
-
-      // Show bottom alert for failure
-      _showBottomAlert("Not enough funds! Debt increased by ${difference}K");
-
-      // No immediate refresh of klooicash needed here since no payment was made
+      // User canceled
     }
-  } else {
-    // User canceled, do nothing
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -247,9 +228,7 @@ Future<void> _attemptKlaroPayment(
       behavior: HitTestBehavior.opaque,
       child: Stack(
         children: [
-          Container(
-            color: Colors.transparent,
-          ),
+          Container(color: Colors.transparent),
           Positioned(
             right: 20,
             top: 60,
@@ -380,10 +359,14 @@ Future<void> _attemptKlaroPayment(
                                               MaterialPageRoute(builder: (context) => const LearningRoadScreen()),
                                             );
                                           } else if (notif.type == NotificationType.klaroAlert && notif.transactionDescription != null) {
-                                            // Handle Klaro payment attempt
                                             await _attemptKlaroPayment(notif.transactionDescription!, notificationService, notif);
-                                          } 
-                                          // Other notification types can be handled similarly if needed
+                                          } else if (notif.type == NotificationType.promotionalOffer) {
+                                            // For promotionalOffer, after marking read, navigate to Shop Screen
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(builder: (context) => const RewardsShopScreen()),
+                                            );
+                                          }
                                         },
                                         child: NotificationCard(notification: notif),
                                       ),
@@ -423,6 +406,8 @@ Future<void> _attemptKlaroPayment(
   }
 
   Color _getBackgroundColor(NotificationType type) {
+    // Adjust promotionalOffer color so it's different from welcome
+    // Let's use AppTheme.klooigeldRozeAlt for promotionalOffer
     switch (type) {
       case NotificationType.unlockedGameScenario:
         return AppTheme.klooigeldBlauw;
@@ -431,7 +416,7 @@ Future<void> _attemptKlaroPayment(
       case NotificationType.paymentReminder:
         return AppTheme.klooigeldRoze;
       case NotificationType.promotionalOffer:
-        return AppTheme.klooigeldPaars;
+        return AppTheme.klooigeldRozeAlt;
       case NotificationType.balanceWarning:
         return Colors.red;
       case NotificationType.welcome:
