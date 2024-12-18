@@ -1,13 +1,10 @@
 // lib/services/notification_service.dart
 
 // Explanation of changes:
-// - After adding the welcome notification on first launch, we now also add a promotional offer notification.
-// - This promotional offer notification will appear only once, right after the welcome notification.
-// - We store a boolean in SharedPreferences indicating that the promotional offer has been shown,
-//   so it won't be shown again on subsequent launches.
-// - The promotional offer applies discounts to certain shop items (shoes).
-// - This integration ensures that when the user enters the shop screen,
-//   they can see discounted prices for items in the "shoes" category.
+// - After adding the promotional offer notification on the first launch, also add the BNPL unlock notification immediately.
+// - Previously, BNPL scenario unlock notification was only sent after navigating to learning road or completing a scenario.
+// - Now, on first launch, after adding the promotional offer notification, we check if BNPL scenario (index=0) is considered unlocked by default and send its notification if not already sent.
+// - We use a SharedPreferences bool 'bnpl_notification_sent' to ensure it only appears once.
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -19,13 +16,13 @@ import 'transaction_service.dart';
 class NotificationService extends ChangeNotifier {
   static const String _prefsKey = 'app_notifications';
   static const String _firstTimeKey = 'is_first_time';
-  static const String _promoOfferKey = 'promo_offer_shown'; // NEW: track if promo offer shown
+  static const String _promoOfferKey = 'promo_offer_shown';
+  static const String _bnplNotiSentKey = 'bnpl_notification_sent'; // NEW: track if BNPL notification sent
   List<AppNotification> _notifications = [];
 
   List<AppNotification> get notifications => _notifications;
-
   bool get hasUnreadNotifications => _notifications.any((notif) => !notif.isRead);
-
+  
   final Uuid _uuid = Uuid();
 
   NotificationService() {
@@ -42,13 +39,21 @@ class NotificationService extends ChangeNotifier {
 
     bool isFirstTime = prefs.getBool(_firstTimeKey) ?? true;
     bool promoOfferShown = prefs.getBool(_promoOfferKey) ?? false;
+    bool bnplNotiSent = prefs.getBool(_bnplNotiSentKey) ?? false;
 
+    // On first launch, show welcome + promotional offer notifications
     if (isFirstTime) {
-      // Add welcome notification
       await addWelcomeNotification();
       await prefs.setBool(_firstTimeKey, false);
 
-      // Immediately after welcome, add the promotional offer notification if not already shown
+      // After promotional offer, also show BNPL scenario unlocked notification if not sent
+      // BNPL is the first scenario and considered unlocked by default.
+      // Only do this if bnpl_notification_sent is false.
+      if (!bnplNotiSent) {
+        await addBNPLScenarioNotification();
+        await prefs.setBool(_bnplNotiSentKey, true);
+      }
+
       if (!promoOfferShown) {
         await addPromotionalOfferNotification();
         await prefs.setBool(_promoOfferKey, true);
@@ -109,12 +114,24 @@ class NotificationService extends ChangeNotifier {
     notifyListeners();
   }
 
-  // NEW: Add Promotional Offer Notification after the welcome notification.
   Future<void> addPromotionalOfferNotification() async {
     await addNotification(
       title: 'Special Promotional Offer!',
       message: 'Limited-time discounts on all shoes! Visit the shop now.',
       type: NotificationType.promotionalOffer,
+    );
+  }
+
+  // NEW: Add BNPL scenario unlocked notification after promotional offer on first launch
+  Future<void> addBNPLScenarioNotification() async {
+    // BNPL scenario name is "Buy Now, Pay Later"
+    const scenarioName = "Buy Now, Pay Later";
+    const scenarioMsg = "Time to flex those delayed payment skills!";
+    await addNotification(
+      title: 'Fresh Scenario Dropped!',
+      message: "Congrats! You just unlocked '$scenarioName'. $scenarioMsg",
+      type: NotificationType.unlockedGameScenario,
+      scenarioName: scenarioName,
     );
   }
 
@@ -186,7 +203,6 @@ class NotificationService extends ChangeNotifier {
     );
   }
 
-  /// Public method to re-check Klaro alerts, if needed
   Future<void> refreshKlaroAlerts() async {
     await _checkPendingKlaroTransactions();
     await _saveNotifications();

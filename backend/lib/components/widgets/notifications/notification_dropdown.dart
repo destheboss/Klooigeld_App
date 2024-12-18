@@ -416,7 +416,7 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
       case NotificationType.paymentReminder:
         return AppTheme.klooigeldRoze;
       case NotificationType.promotionalOffer:
-        return AppTheme.klooigeldRozeAlt;
+        return AppTheme.klooigeldGroen;
       case NotificationType.balanceWarning:
         return Colors.red;
       case NotificationType.welcome:

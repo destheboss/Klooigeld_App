@@ -69,7 +69,7 @@ class NotificationCard extends StatelessWidget {
     } else if (notification.type == NotificationType.paymentReminder) {
       iconColor = AppTheme.klooigeldRoze;
     } else if (notification.type == NotificationType.promotionalOffer) {
-      iconColor = AppTheme.klooigeldRozeAlt;
+      iconColor = AppTheme.klooigeldGroen;
     } else if (notification.type == NotificationType.balanceWarning) {
       iconColor = Colors.red;
     } else if (notification.type == NotificationType.welcome) {
