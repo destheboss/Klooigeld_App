@@ -9,33 +9,7 @@ import '../../components/widgets/rewards/category_icon.dart';
 import '../../components/widgets/rewards/shop_item_card.dart';
 import '../../components/widgets/rewards/purchase_overlay.dart';
 import '../../services/item_service.dart';
-
-/// Simple model for storing transactions in SharedPreferences
-class TransactionRecord {
-  final String description;
-  final int amount; // negative for purchases, positive for income
-  final String date; // stored as e.g. '2024-12-15'
-
-  TransactionRecord({
-    required this.description,
-    required this.amount,
-    required this.date,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'description': description,
-        'amount': amount,
-        'date': date,
-      };
-
-  factory TransactionRecord.fromJson(Map<String, dynamic> json) {
-    return TransactionRecord(
-      description: json['description'],
-      amount: json['amount'],
-      date: json['date'],
-    );
-  }
-}
+import '../../services/transaction_service.dart';
 
 class RewardsShopScreen extends StatefulWidget {
   final bool isModal;

@@ -17,27 +17,7 @@ import '../../screens/(rewards)/rewards_shop_screen.dart';
 import '../../screens/(tips)/tips_screen.dart';
 import '../../services/notification_service.dart'; // Import NotificationService
 import '../../main.dart'; // To access the global routeObserver
-
-/// Simple model matching the JSON structure in RewardsShopScreen
-class TransactionRecord {
-  final String description;
-  final int amount;
-  final String date; // Can be YYYY-MM-DD or "Pending"
-
-  TransactionRecord({
-    required this.description,
-    required this.amount,
-    required this.date,
-  });
-
-  factory TransactionRecord.fromJson(Map<String, dynamic> json) {
-    return TransactionRecord(
-      description: json['description'],
-      amount: json['amount'],
-      date: json['date'],
-    );
-  }
-}
+import '../../services/transaction_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -547,10 +527,11 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
             ),
 
             // Notification Dropdown
-            if (_showNotifications)
-              NotificationDropdown(
-                onClose: _closeNotifications,
-              ),
+           if (_showNotifications)
+            NotificationDropdown(
+              onClose: _closeNotifications,
+              onKlooicashUpdated: _refreshData, // Add this line
+            ),
           ],
         ),
       ),

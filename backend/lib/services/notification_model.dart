@@ -1,5 +1,8 @@
 // lib/services/notification_model.dart
 
+// Explanation of changes:
+// - Added an optional field 'transactionDescription' to track which transaction a Klaro alert is for.
+//   This allows us to identify and attempt payment when the notification is tapped.
 enum NotificationType {
   unlockedGameScenario,
   klaroAlert,
@@ -16,7 +19,8 @@ class AppNotification {
   final NotificationType type;
   final DateTime timestamp;
   bool isRead;
-  final String? scenarioName; // NEW: Scenario name for scenario-based notifications
+  final String? scenarioName; 
+  final String? transactionDescription; // NEW: For Klaro alert notifications
 
   AppNotification({
     required this.id,
@@ -26,6 +30,7 @@ class AppNotification {
     required this.timestamp,
     this.isRead = false,
     this.scenarioName,
+    this.transactionDescription,
   });
 
   Map<String, dynamic> toMap() {
@@ -37,6 +42,7 @@ class AppNotification {
       'timestamp': timestamp.toIso8601String(),
       'isRead': isRead,
       'scenarioName': scenarioName,
+      'transactionDescription': transactionDescription,
     };
   }
 
@@ -49,6 +55,7 @@ class AppNotification {
       timestamp: DateTime.parse(map['timestamp']),
       isRead: map['isRead'],
       scenarioName: map['scenarioName'],
+      transactionDescription: map['transactionDescription'],
     );
   }
 }

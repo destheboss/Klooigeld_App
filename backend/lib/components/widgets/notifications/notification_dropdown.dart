@@ -1,3 +1,14 @@
+// lib/components/widgets/notifications/notification_dropdown.dart
+
+// Changes:
+// - Replaced the AlertDialog with CustomDialog for payment confirmation
+// - Renamed Klaro Payment ... strings to Klaro ... strings in notifications
+// - If not enough balance, update the transaction amount by adding interest instead of adding a separate interest transaction
+// - Show bottom alert using the same styling approach as the shop's "already purchased" alert
+// - After successful payment, update klooicash and then show bottom alert
+// - Add a callback `onKlooicashUpdated` that, when triggered, forces HomeScreen to refresh by calling _refreshData()
+//   For simplicity, we can pass a callback from HomeScreen to NotificationDropdown. If not originally provided, add it now.
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -6,12 +17,17 @@ import '../../../services/notification_service.dart';
 import '../../../services/notification_model.dart';
 import '../../../theme/app_theme.dart';
 import 'notification_card.dart';
-import '../../../../screens/(learning_road)/learning-road_screen.dart'; // Import to navigate
+import '../../../../screens/(learning_road)/learning-road_screen.dart';
+import '../../../services/transaction_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../main.dart'; // For routeObserver if needed
+import '../../../features/scenarios/widgets/custom_dialog.dart';
 
 class NotificationDropdown extends StatefulWidget {
   final VoidCallback onClose;
+  final VoidCallback onKlooicashUpdated; // NEW: callback to refresh home screen klooicash
 
-  const NotificationDropdown({Key? key, required this.onClose}) : super(key: key);
+  const NotificationDropdown({Key? key, required this.onClose, required this.onKlooicashUpdated}) : super(key: key);
 
   @override
   _NotificationDropdownState createState() => _NotificationDropdownState();
@@ -50,10 +66,184 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
     }
   }
 
+  Future<int> _getCurrentKlooicash() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('klooicash') ?? 500;
+  }
+
+  Future<void> _setCurrentKlooicash(int newBalance) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('klooicash', newBalance);
+  }
+
+  Future<void> _showBottomAlert(String message) async {
+    // Show a bottom alert styled similarly to "Item already purchased"
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        duration: const Duration(seconds: 2),
+        content: Align(
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppTheme.klooigeldRoze,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppTheme.klooigeldBlauw, width: 2),
+            ),
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: AppTheme.neighbor,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.klooigeldBlauw,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
+      ),
+    );
+  }
+
+  // NEW: Handle Klaro Payment Attempt using CustomDialog
+Future<void> _attemptKlaroPayment(
+  String transactionDescription,
+  NotificationService notificationService,
+  AppNotification notif,
+) async {
+  int currentBalance = await _getCurrentKlooicash();
+
+  final pending = await TransactionService.getPendingKlaroTransactions();
+  final tx = pending.firstWhere(
+    (t) => t.description == transactionDescription,
+    orElse: () => TransactionRecord(description: '', amount: 0, date: ''),
+  );
+
+  if (tx.description.isEmpty) {
+    // No matching transaction found, just mark notification read.
+    await notificationService.markAsRead(notif.id);
+    return;
+  }
+
+  final cost = tx.amount.abs(); // e.g., 700K
+  // Show CustomDialog for payment confirmation
+  bool? payNow = await showDialog<bool>(
+  context: context,
+  builder: (ctx) => CustomDialog(
+    icon: FontAwesomeIcons.moneyCheckAlt,
+    title: "Pay Klaro Debt",
+    content: "You owe **${tx.description}** for **${cost}K**. Pay now?",
+    actions: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.klooigeldRozeAlt, // Changed to klooigeldGreen
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                "Cancel",
+                style: TextStyle(
+                  fontFamily: AppTheme.neighbor,
+                  fontSize: 16,
+                  color: AppTheme.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.klooigeldGroen, // Changed to klooigeldGreen
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                "Pay",
+                style: TextStyle(
+                  fontFamily: AppTheme.neighbor,
+                  fontSize: 16,
+                  color: AppTheme.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ],
+    closeValue: false,
+    borderColor: AppTheme.klooigeldGroen,       // Set border color to klooigeldGreen
+    iconColor: AppTheme.klooigeldGroen,         // Set icon color to klooigeldGreen
+    closeButtonColor: AppTheme.klooigeldGroen,  // Set close button color to klooigeldGreen
+  ),
+);
+
+  if (payNow == true) {
+    if (currentBalance >= cost) {
+      // Sufficient funds, pay it off
+      final newBalance = currentBalance - cost;
+      await _setCurrentKlooicash(newBalance);
+      await TransactionService.payKlaroTransaction(transactionDescription);
+
+      // Mark notification read and remove it (since it's paid)
+      await notificationService.markAsRead(notif.id);
+      await notificationService.deleteNotification(notif.id);
+
+      // Refresh home screen balance
+      widget.onKlooicashUpdated();
+
+      // Show bottom alert for success
+      _showBottomAlert("Payment successful!");
+    } else {
+      // Insufficient funds, add interest (e.g., 10% interest)
+      // New amount = cost * 1.1
+      final newCost = (cost * 1.1).round();
+      final difference = newCost - cost;
+
+      // Update the existing pending transaction with the new amount
+      final updatedTx = TransactionRecord(
+        description: tx.description,
+        amount: -newCost, // keep negative since it's a debt
+        date: tx.date,
+      );
+
+      await TransactionService.updateTransaction(tx, updatedTx);
+
+      // Mark old notification as read
+      await notificationService.markAsRead(notif.id);
+
+      // Add a Klaro Failed notification
+      await notificationService.addKlaroInterestNotification(updatedTx);
+
+      // Show bottom alert for failure
+      _showBottomAlert("Not enough funds! Debt increased by ${difference}K");
+
+      // No immediate refresh of klooicash needed here since no payment was made
+    }
+  } else {
+    // User canceled, do nothing
+  }
+}
+
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.onClose, // Close when tapping outside
+      onTap: widget.onClose,
       behavior: HitTestBehavior.opaque,
       child: Stack(
         children: [
@@ -184,13 +374,16 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
                                       child: GestureDetector(
                                         onTap: () async {
                                           await notificationService.markAsRead(notif.id);
-                                          // Navigate if this is an Unlocked Game Scenario notification
                                           if (notif.type == NotificationType.unlockedGameScenario) {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(builder: (context) => const LearningRoadScreen()),
                                             );
-                                          }
+                                          } else if (notif.type == NotificationType.klaroAlert && notif.transactionDescription != null) {
+                                            // Handle Klaro payment attempt
+                                            await _attemptKlaroPayment(notif.transactionDescription!, notificationService, notif);
+                                          } 
+                                          // Other notification types can be handled similarly if needed
                                         },
                                         child: NotificationCard(notification: notif),
                                       ),

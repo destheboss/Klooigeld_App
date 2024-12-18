@@ -1,10 +1,15 @@
 // lib/services/notification_service.dart
 
+// Changes:
+// - Renamed Klaro Payment Reminder to "Klaro Reminder"
+// - Renamed Klaro Payment Failed to "Klaro Failed"
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_model.dart';
 import 'package:uuid/uuid.dart';
+import 'transaction_service.dart';
 
 class NotificationService extends ChangeNotifier {
   static const String _prefsKey = 'app_notifications';
@@ -35,6 +40,7 @@ class NotificationService extends ChangeNotifier {
       await prefs.setBool(_firstTimeKey, false);
     }
 
+    await _checkPendingKlaroTransactions();
     notifyListeners();
   }
 
@@ -52,7 +58,8 @@ class NotificationService extends ChangeNotifier {
     required String title,
     required String message,
     required NotificationType type,
-    String? scenarioName, // NEW: scenarioName optional parameter
+    String? scenarioName,
+    String? transactionDescription,
   }) async {
     final notification = AppNotification(
       id: _uuid.v4(),
@@ -61,6 +68,7 @@ class NotificationService extends ChangeNotifier {
       type: type,
       timestamp: DateTime.now(),
       scenarioName: scenarioName,
+      transactionDescription: transactionDescription,
     );
 
     if (_notifications.isNotEmpty && isWelcomeNotification(_notifications.first)) {
@@ -119,6 +127,45 @@ class NotificationService extends ChangeNotifier {
     _notifications.clear();
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove(_prefsKey);
+    notifyListeners();
+  }
+
+  Future<void> _checkPendingKlaroTransactions() async {
+    final pendingKlaroTx = await TransactionService.getPendingKlaroTransactions();
+    for (var tx in pendingKlaroTx) {
+      bool exists = _notifications.any((n) =>
+          n.type == NotificationType.klaroAlert &&
+          n.transactionDescription == tx.description &&
+          !n.isRead
+      );
+      if (!exists) {
+        await addKlaroAlertNotification(tx);
+      }
+    }
+  }
+
+  Future<void> addKlaroAlertNotification(TransactionRecord tx) async {
+    await addNotification(
+      title: 'Klaro Reminder',
+      message: 'You owe: ${tx.description}. Tap to pay now!',
+      type: NotificationType.klaroAlert,
+      transactionDescription: tx.description,
+    );
+  }
+
+  Future<void> addKlaroInterestNotification(TransactionRecord tx) async {
+    await addNotification(
+      title: 'Klaro Payment Failed',
+      message: 'Not enough funds. Your Klaro debt for ${tx.description} increased!',
+      type: NotificationType.klaroAlert,
+      transactionDescription: tx.description,
+    );
+  }
+
+  /// Public method to re-check Klaro alerts, if needed
+  Future<void> refreshKlaroAlerts() async {
+    await _checkPendingKlaroTransactions();
+    await _saveNotifications();
     notifyListeners();
   }
 }
