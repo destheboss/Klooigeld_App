@@ -10,6 +10,7 @@ class UserProfileData {
   final String? gender;
   final String? lifestyle;
   final String? avatarPath;
+  final int? klooicash;
 
   const UserProfileData({
     this.username,
@@ -17,6 +18,7 @@ class UserProfileData {
     this.gender,
     this.lifestyle,
     this.avatarPath,
+    this.klooicash,
   });
 }
 
@@ -26,6 +28,7 @@ class AccountService {
   static const _keyGender = 'gender';
   static const _keyLifestyle = 'lifestyle';
   static const _keyAvatar = 'avatarImagePath';
+  static const _klooicash = 'klooicash';
 
   static Future<UserProfileData> loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -35,6 +38,7 @@ class AccountService {
       gender: prefs.getString(_keyGender),
       lifestyle: prefs.getString(_keyLifestyle),
       avatarPath: prefs.getString(_keyAvatar),
+      klooicash: prefs.getInt(_klooicash)
     );
   }
 
@@ -44,6 +48,7 @@ class AccountService {
     String? gender,
     String? lifestyle,
     String? avatarPath,
+    int? klooicash,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyUsername, username);

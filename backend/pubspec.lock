@@ -368,6 +368,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.1+1"
+  implicitly_animated_list:
+    dependency: "direct main"
+    description:
+      name: implicitly_animated_list
+      sha256: "327074913ed350fbd5089bf433d6268fb98022210e03668035523da7ff64dfdb"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.0"
+  implicitly_animated_reorderable_list:
+    dependency: "direct main"
+    description:
+      name: implicitly_animated_reorderable_list
+      sha256: efe990eb011dfbc147ca6f7398f8b2ef7d7b2d89a599c590eac7525f0ea81970
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.2"
   intl:
     dependency: "direct main"
     description:
@@ -416,6 +432,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.0.0"
+  list_diff:
+    dependency: transitive
+    description:
+      name: list_diff
+      sha256: ac2d99c4379d5175f1e4943850808e1bf4d5604fd46c1ec3060e7fb0c0fdab05
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.1"
   matcher:
     dependency: transitive
     description:

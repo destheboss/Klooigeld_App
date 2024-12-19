@@ -59,7 +59,6 @@ class _AccountScreenState extends State<AccountScreen> {
 
   final ScrollController _scrollController = ScrollController();
 
-  // GlobalKeys for dropdowns
   final GlobalKey _genderDropdownKey = GlobalKey();
   final GlobalKey _lifestyleDropdownKey = GlobalKey();
 
@@ -70,6 +69,21 @@ class _AccountScreenState extends State<AccountScreen> {
         _selectedLifestyle != _initialLifestyle ||
         (_avatarFile?.path ?? '') != (_initialAvatarPath ?? '');
   }
+
+  // Leaderboard-related fields
+  int _currentUserKlooicash = 500;
+  int _currentUserTapCount = 0;
+
+  final List<Map<String, dynamic>> _allBadges = [
+    {'name': 'Buy Now, Pay Later', 'icon': FontAwesomeIcons.shoppingCart},
+    {'name': 'Saving', 'icon': FontAwesomeIcons.piggyBank},
+    {'name': 'Gambling', 'icon': FontAwesomeIcons.dice},
+    {'name': 'Insurances', 'icon': FontAwesomeIcons.shieldHalved},
+    {'name': 'Loans', 'icon': FontAwesomeIcons.handHoldingUsd},
+    {'name': 'Investing', 'icon': FontAwesomeIcons.chartLine},
+  ];
+
+  late List<_LeaderboardUser> _leaderboardUsers;
 
   @override
   void initState() {
@@ -90,6 +104,7 @@ class _AccountScreenState extends State<AccountScreen> {
       _ageController.text = _initialAge!;
       _selectedGender = _initialGender;
       _selectedLifestyle = _initialLifestyle;
+      _currentUserKlooicash = data.klooicash ?? 500;
 
       if (_initialAvatarPath != null &&
           _initialAvatarPath!.isNotEmpty &&
@@ -97,8 +112,74 @@ class _AccountScreenState extends State<AccountScreen> {
         _avatarFile = File(_initialAvatarPath!);
       }
 
+      _initLeaderboardUsers();
+
       _isLoading = false; // Data loaded
     });
+  }
+
+  void _initLeaderboardUsers() {
+    final currentUserName = (_initialUsername != null && _initialUsername!.isNotEmpty)
+        ? _initialUsername!
+        : "YOU";
+
+    final fakeUsers = [
+      _LeaderboardUser(
+        name: "Wiktor",
+        avatar: "assets/images/avatar1.png",
+        klooicash: 700,
+        badges: _pickRandomBadges(),
+        isCurrentUser: false,
+      ),
+      _LeaderboardUser(
+        name: "Andy",
+        avatar: "assets/images/avatar2.png",
+        klooicash: 600,
+        badges: _pickRandomBadges(),
+        isCurrentUser: false,
+      ),
+      _LeaderboardUser(
+        name: "Clau",
+        avatar: "assets/images/avatar3.png",
+        klooicash: 550,
+        badges: _pickRandomBadges(),
+        isCurrentUser: false,
+      ),
+      _LeaderboardUser(
+        name: "Ray",
+        avatar: "assets/images/avatar4.png",
+        klooicash: 530,
+        badges: _pickRandomBadges(),
+        isCurrentUser: false,
+      ),
+    ];
+
+    final currentUserAvatar = _avatarFile != null
+        ? _avatarFile!.path
+        : "assets/images/avatar5.png";
+
+    final currentUser = _LeaderboardUser(
+      name: currentUserName.toUpperCase(),
+      avatar: currentUserAvatar,
+      klooicash: _currentUserKlooicash,
+      badges: _pickRandomBadges(),
+      isCurrentUser: true,
+    );
+
+    _leaderboardUsers = [...fakeUsers, currentUser];
+    _sortLeaderboard();
+  }
+
+  List<Map<String, dynamic>> _pickRandomBadges() {
+    _allBadges.shuffle();
+    return _allBadges.take(2).toList();
+  }
+
+  void _sortLeaderboard() {
+    _leaderboardUsers.sort((a, b) => b.klooicash.compareTo(a.klooicash));
+    for (int i = 0; i < _leaderboardUsers.length; i++) {
+      _leaderboardUsers[i].rank = i + 1;
+    }
   }
 
   Future<void> _saveUserData() async {
@@ -109,6 +190,7 @@ class _AccountScreenState extends State<AccountScreen> {
       gender: _selectedGender,
       lifestyle: _selectedLifestyle,
       avatarPath: _avatarFile?.path,
+      klooicash: _currentUserKlooicash,
     );
 
     setState(() {
@@ -190,13 +272,11 @@ class _AccountScreenState extends State<AccountScreen> {
 
   void _onPopupMenuSelected(int value) {
     if (value == 1) {
-      // Navigate to TipsScreen
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const TipsScreen()),
       );
     }
-    // Handle other menu options if added in the future
   }
 
   Future<bool> _onWillPop() async {
@@ -267,7 +347,6 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Future<void> _scrollToDropdown(GlobalKey key) async {
-    // Wait for the dropdown to render
     await Future.delayed(const Duration(milliseconds: 300));
     if (key.currentContext != null) {
       await Scrollable.ensureVisible(
@@ -289,184 +368,155 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
-      child: GestureDetector(
-        onTap: () {
-          FocusScope.of(context).unfocus();
-        },
-        child: Scaffold(
-          backgroundColor: AppTheme.white,
-          resizeToAvoidBottomInset: true,
-          body: SafeArea(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(),
-                  )
-                : SingleChildScrollView(
-                    controller: _scrollController,
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 30),
-                        // HEADER SECTION
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 26, vertical: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              InkWell(
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: () async {
-                                  bool canPop = await _onWillPop();
-                                  if (canPop && mounted) Navigator.pop(context);
-                                },
-                                child: Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.white,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                        color: Colors.black, width: 2),
-                                  ),
-                                  child: const Icon(Icons.chevron_left_rounded,
-                                      size: 30, color: AppTheme.nearlyBlack),
-                                ),
-                              ),
-                              Text(
-                                'ACCOUNT',
-                                style: TextStyle(
-                                  fontFamily: AppTheme.titleFont,
-                                  fontSize: 45,
-                                  color: AppTheme.nearlyBlack2,
-                                ),
-                              ),
-                              PopupMenuButton<int>(
-                                onSelected: _onPopupMenuSelected,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  side: const BorderSide(
-                                      color: Colors.black, width: 2),
-                                ),
-                                color: AppTheme.white,
-                                elevation: 4,
-                                itemBuilder: (context) => [
-                                  PopupMenuItem<int>(
-                                    value: 1,
-                                    child: Row(
-                                      children: const [
-                                        SizedBox(width: 4),
-                                        Text(
-                                          'Tips',
-                                          style: TextStyle(
-                                            fontFamily: AppTheme.neighbor,
-                                            fontSize: 14,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                        SizedBox(width: 43),
-                                        FaIcon(FontAwesomeIcons.lightbulb,
-                                            size: 16, color: Colors.black),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                          color: Colors.black, width: 2),
-                                    ),
-                                    child: const Icon(Icons.more_vert,
-                                        color: AppTheme.nearlyBlack),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+  void _toggleDropdown(
+      {required DropdownType dropdownType, required bool currentState}) {
+    switch (dropdownType) {
+      case DropdownType.gender:
+        _showGenderDropdown = !currentState;
+        if (_showGenderDropdown) {
+          _showLifestyleDropdown = false;
+          _scrollToDropdown(_genderDropdownKey);
+        } else {
+          _scrollToTop();
+        }
+        break;
+      case DropdownType.lifestyle:
+        _showLifestyleDropdown = !currentState;
+        if (_showLifestyleDropdown) {
+          _showGenderDropdown = false;
+          _scrollToDropdown(_lifestyleDropdownKey);
+        } else {
+          _scrollToTop();
+        }
+        break;
+    }
+  }
 
-                        // DETAILS / LEADERBOARD SECTION + AVATAR
-                        SizedBox(
-                          height: 110,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Positioned.fill(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 28),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      _buildToggleItem(
-                                        icon: FontAwesomeIcons.user,
-                                        label: 'Your Details',
-                                        isActive: _showYourDetails,
-                                        onTap: () {
-                                          setState(() {
-                                            _showYourDetails = true;
-                                            _showGenderDropdown = false;
-                                            _showLifestyleDropdown = false;
-                                          });
-                                        },
-                                      ),
-                                      _buildToggleItem(
-                                        icon: FontAwesomeIcons.trophy,
-                                        label: 'Leaderboard',
-                                        isActive: !_showYourDetails,
-                                        onTap: () {
-                                          setState(() {
-                                            _showYourDetails = false;
-                                            _showGenderDropdown = false;
-                                            _showLifestyleDropdown = false;
-                                          });
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: -25,
-                                child: Center(
-                                  child: AvatarUploadWidget(
-                                    avatarFile: _avatarFile,
-                                    onTap: _pickAvatarImage,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 0),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          transitionBuilder: (child, animation) {
-                            return FadeTransition(
-                                opacity: animation, child: child);
-                          },
-                          child: _showYourDetails
-                              ? _buildYourDetailsView(context)
-                              : _buildLeaderboardPlaceholder(),
-                        ),
-                      ],
+  void _incrementCurrentUserKlooicash() async {
+    setState(() {
+      final currentUser = _leaderboardUsers.firstWhere((u) => u.isCurrentUser);
+      currentUser.klooicash += 40; // add around 40 klooigeld
+      _currentUserKlooicash = currentUser.klooicash;
+      _sortLeaderboard();
+    });
+    // Save the updated klooicash
+    await AccountService.saveUserData(
+      username: _initialUsername ?? '',
+      age: int.tryParse(_initialAge ?? ''),
+      gender: _initialGender,
+      lifestyle: _initialLifestyle,
+      avatarPath: _initialAvatarPath,
+      klooicash: _currentUserKlooicash,
+    );
+  }
+
+  Widget _buildDropdownList({
+    required BuildContext context,
+    required List<Map<String, dynamic>> options,
+    required String? selectedValue,
+    required ValueChanged<String> onSelected,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      width: MediaQuery.of(context).size.width,
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.black, width: 1.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: options.map((option) {
+            final isSelected = option['label'] == selectedValue;
+            return InkWell(
+              onTap: () => onSelected(option['label']),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppTheme.klooigeldBlauw.withOpacity(0.1)
+                      : AppTheme.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      option['label'],
+                      style: const TextStyle(
+                        fontFamily: AppTheme.neighbor,
+                        fontSize: 14,
+                        color: AppTheme.black,
+                      ),
                     ),
-                  ),
-          ),
+                    const Spacer(),
+                    FaIcon(option['icon'],
+                        size: 20, color: AppTheme.nearlyBlack),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
         ),
+      ),
+    );
+  }
+
+  Widget _buildToggleItem({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          const SizedBox(height: 30),
+          Container(
+            width: 45,
+            height: 45,
+            decoration: BoxDecoration(
+              color: isActive ? AppTheme.klooigeldBlauw : AppTheme.grey,
+              shape: BoxShape.circle,
+              boxShadow: isActive
+                  ? [
+                      const BoxShadow(
+                          color: Colors.black26,
+                          offset: Offset(0, 3),
+                          blurRadius: 8)
+                    ]
+                  : [],
+            ),
+            child: Center(
+              child: FaIcon(icon, size: 18, color: AppTheme.white),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontFamily: AppTheme.neighbor,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+              fontSize: 12,
+              color: isActive ? AppTheme.nearlyBlack2 : AppTheme.grey,
+            ),
+          ),
+          const SizedBox(height: 4),
+          if (isActive)
+            Container(
+              width: 30,
+              height: 2,
+              decoration: BoxDecoration(
+                color: AppTheme.klooigeldBlauw,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -478,7 +528,6 @@ class _AccountScreenState extends State<AccountScreen> {
       child: Column(
         children: [
           const SizedBox(height: 40),
-
           InkWell(
             onTap: () {
               FocusScope.of(context).requestFocus(_usernameFocusNode);
@@ -539,9 +588,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
             ),
           ),
-
           const SizedBox(height: 16),
-
           InkWell(
             onTap: () {
               FocusScope.of(context).requestFocus(_ageFocusNode);
@@ -603,9 +650,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
             ),
           ),
-
           const SizedBox(height: 16),
-
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -696,7 +741,6 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
             ],
           ),
-
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             transitionBuilder: (child, animation) {
@@ -744,9 +788,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ],
             ),
           ),
-
           const SizedBox(height: 16),
-
           if (_hasChanges)
             SizedBox(
               width: double.infinity,
@@ -776,153 +818,405 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  void _toggleDropdown(
-      {required DropdownType dropdownType, required bool currentState}) {
-    switch (dropdownType) {
-      case DropdownType.gender:
-        _showGenderDropdown = !currentState;
-        if (_showGenderDropdown) {
-          _showLifestyleDropdown = false;
-          _scrollToDropdown(_genderDropdownKey);
-        } else {
-          _scrollToTop();
-        }
+  Widget _buildLeaderboardView() {
+    return Padding(
+      key: const ValueKey('leaderboard_view'),
+      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 41),
+          for (var user in _leaderboardUsers) _buildLeaderboardCard(user),
+        ],
+      ),
+    );
+  }
+  
+  // Tooltip-related field to manage the overlay entry
+OverlayEntry? _tooltipOverlayEntry;
+
+/// Displays a custom tooltip above the tapped badge.
+///
+/// - **Parameters:**
+///   - `context`: The BuildContext to find the Overlay.
+///   - `tapPosition`: The global position where the badge was tapped.
+///   - `badgeName`: The name of the badge to display in the tooltip.
+void _showCustomTooltip(BuildContext context, Offset tapPosition, String badgeName) {
+  // Remove any existing tooltip before showing a new one
+  _removeTooltip();
+
+  final overlay = Overlay.of(context);
+  if (overlay == null) return;
+
+  // Create a new OverlayEntry for the tooltip
+  _tooltipOverlayEntry = OverlayEntry(
+    builder: (context) => Positioned(
+      // Position the tooltip relative to the tap position
+      left: tapPosition.dx - 75, // Adjust horizontal position as needed
+      top: tapPosition.dy - 60,  // Adjust vertical position as needed
+      child: Material(
+        color: Colors.transparent, // Ensure the material is transparent
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppTheme.klooigeldBlauw.withOpacity(0.8), // Tooltip background color
+            borderRadius: BorderRadius.circular(8),             // Rounded corners
+            border: Border.all(color: AppTheme.klooigeldBlauw.withOpacity(0.8), width: 2), // Border styling
+          ),
+          child: Text(
+            badgeName,
+            style: const TextStyle(
+              fontFamily: AppTheme.neighbor,
+              fontSize: 14,
+              color: AppTheme.white, // Tooltip text color
+            ),
+          ),
+        ), 
+      ),
+    ),
+  );
+
+  // Insert the tooltip into the overlay
+  overlay.insert(_tooltipOverlayEntry!);
+
+  // Automatically remove the tooltip after 2 seconds
+  Future.delayed(const Duration(seconds: 2), () {
+    _removeTooltip();
+  });
+}
+
+/// Removes the currently displayed tooltip, if any.
+void _removeTooltip() {
+  _tooltipOverlayEntry?.remove(); // Remove the overlay entry from the overlay
+  _tooltipOverlayEntry = null;    // Reset the reference
+}
+
+  Widget _buildLeaderboardCard(_LeaderboardUser user) {
+    Color cardColor;
+    switch (user.rank) {
+      case 1:
+        cardColor = AppTheme.klooigeldRoze;
         break;
-      case DropdownType.lifestyle:
-        _showLifestyleDropdown = !currentState;
-        if (_showLifestyleDropdown) {
-          _showGenderDropdown = false;
-          _scrollToDropdown(_lifestyleDropdownKey);
-        } else {
-          _scrollToTop();
-        }
+      case 2:
+        cardColor = AppTheme.klooigeldPaars;
+        break;
+      case 3:
+        cardColor = AppTheme.klooigeldBlauw;
+        break;
+      default:
+        cardColor = AppTheme.klooigeldGroen;
         break;
     }
-  }
 
-  Widget _buildDropdownList({
-    required BuildContext context,
-    required List<Map<String, dynamic>> options,
-    required String? selectedValue,
-    required ValueChanged<String> onSelected,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      width: MediaQuery.of(context).size.width,
-      decoration: BoxDecoration(
-        color: AppTheme.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.black, width: 1.5),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: options.map((option) {
-            final isSelected = option['label'] == selectedValue;
-            return InkWell(
-              onTap: () => onSelected(option['label']),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppTheme.klooigeldBlauw.withOpacity(0.1)
-                      : AppTheme.white,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      option['label'],
-                      style: const TextStyle(
-                        fontFamily: AppTheme.neighbor,
-                        fontSize: 14,
-                        color: AppTheme.black,
-                      ),
-                    ),
-                    const Spacer(),
-                    FaIcon(option['icon'],
-                        size: 20, color: AppTheme.nearlyBlack),
-                  ],
+    return AnimatedSwitcher(
+      key: ValueKey(user.name + user.rank.toString()),
+      duration: const Duration(milliseconds: 500),
+      transitionBuilder: (child, animation) {
+        return SlideTransition(
+          position: Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero)
+              .animate(animation),
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+      child: GestureDetector(
+        key: ValueKey(user.name),
+        onTap: () {
+          if (user.isCurrentUser) {
+            _currentUserTapCount++;
+            if (_currentUserTapCount >= 5) {
+              _currentUserTapCount = 0;
+              _incrementCurrentUserKlooicash();
+            }
+          }
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                offset: Offset(0, 3),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Text(
+                "${user.rank}",
+                style: const TextStyle(
+                  fontFamily: AppTheme.titleFont,
+                  fontSize: 24,
+                  color: AppTheme.white,
                 ),
               ),
-            );
-          }).toList(),
+              const SizedBox(width: 12),
+              ClipOval(
+                child: user.isCurrentUser && _avatarFile != null
+                    ? Image.file(
+                        File(user.avatar),
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.asset(
+                        user.avatar,
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  user.name.toUpperCase(),
+                  style: const TextStyle(
+                    fontFamily: AppTheme.neighbor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.white,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+                          Row(
+              children: user.badges.map((badge) {
+                return Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: GestureDetector(
+                    onTapDown: (details) {
+                      // Show the custom tooltip when the badge is tapped
+                      _showCustomTooltip(
+                        context,
+                        details.globalPosition,
+                        badge['name'],
+                      );
+                    },
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: FaIcon(
+                          badge['icon'],
+                          size: 16,
+                          color: cardColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).take(2).toList(),
+              ),
+              const SizedBox(width: 12),
+              Row(
+                children: [
+                  Text(
+                    '${user.klooicash}',
+                    style: const TextStyle(
+                      fontFamily: AppTheme.neighbor,
+                      fontSize: 18,
+                      color: AppTheme.white,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Transform.translate(
+                    offset: const Offset(0, 0.6),
+                    child: Image.asset(
+                      'assets/images/currency_white.png',
+                      width: 14,
+                      height: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildToggleItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          const SizedBox(height: 30),
-          Container(
-            width: 45,
-            height: 45,
-            decoration: BoxDecoration(
-              color: isActive ? AppTheme.klooigeldBlauw : AppTheme.grey,
-              shape: BoxShape.circle,
-              boxShadow: isActive
-                  ? [
-                      const BoxShadow(
-                          color: Colors.black26,
-                          offset: Offset(0, 3),
-                          blurRadius: 8)
-                    ]
-                  : [],
-            ),
-            child: Center(
-              child: FaIcon(icon, size: 18, color: AppTheme.white),
-            ),
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: Scaffold(
+          backgroundColor: AppTheme.white,
+          resizeToAvoidBottomInset: true,
+          body: SafeArea(
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
+                : SingleChildScrollView(
+                    controller: _scrollController,
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 30),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 26, vertical: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () async {
+                                  bool canPop = await _onWillPop();
+                                  if (canPop && mounted) Navigator.pop(context);
+                                },
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border:
+                                        Border.all(color: Colors.black, width: 2),
+                                  ),
+                                  child: const Icon(Icons.chevron_left_rounded,
+                                      size: 30, color: AppTheme.nearlyBlack),
+                                ),
+                              ),
+                              Text(
+                                'ACCOUNT',
+                                style: TextStyle(
+                                  fontFamily: AppTheme.titleFont,
+                                  fontSize: 45,
+                                  color: AppTheme.nearlyBlack2,
+                                ),
+                              ),
+                              PopupMenuButton<int>(
+                                onSelected: _onPopupMenuSelected,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side:
+                                      const BorderSide(color: Colors.black, width: 2),
+                                ),
+                                color: AppTheme.white,
+                                elevation: 4,
+                                itemBuilder: (context) => [
+                                  PopupMenuItem<int>(
+                                    value: 1,
+                                    child: Row(
+                                      children: const [
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Tips',
+                                          style: TextStyle(
+                                            fontFamily: AppTheme.neighbor,
+                                            fontSize: 14,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        SizedBox(width: 43),
+                                        FaIcon(FontAwesomeIcons.lightbulb,
+                                            size: 16, color: Colors.black),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                          color: Colors.black, width: 2),
+                                    ),
+                                    child: const Icon(Icons.more_vert,
+                                        color: AppTheme.nearlyBlack),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          height: 110,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Positioned.fill(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 28),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      _buildToggleItem(
+                                        icon: FontAwesomeIcons.user,
+                                        label: 'Your Details',
+                                        isActive: _showYourDetails,
+                                        onTap: () {
+                                          setState(() {
+                                            _showYourDetails = true;
+                                            _showGenderDropdown = false;
+                                            _showLifestyleDropdown = false;
+                                          });
+                                        },
+                                      ),
+                                      _buildToggleItem(
+                                        icon: FontAwesomeIcons.trophy,
+                                        label: 'Leaderboard',
+                                        isActive: !_showYourDetails,
+                                        onTap: () {
+                                          setState(() {
+                                            _showYourDetails = false;
+                                            _showGenderDropdown = false;
+                                            _showLifestyleDropdown = false;
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: -25,
+                                child: Center(
+                                  child: AvatarUploadWidget(
+                                    avatarFile: _avatarFile,
+                                    onTap: _pickAvatarImage,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 0),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          transitionBuilder: (child, animation) {
+                            return FadeTransition(
+                                opacity: animation, child: child);
+                          },
+                          child: _showYourDetails
+                              ? _buildYourDetailsView(context)
+                              : _buildLeaderboardView(),
+                        ),
+                      ],
+                    ),
+                  ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              fontFamily: AppTheme.neighbor,
-              fontWeight:
-                  isActive ? FontWeight.bold : FontWeight.w500,
-              fontSize: 12,
-              color:
-                  isActive ? AppTheme.nearlyBlack2 : AppTheme.grey,
-            ),
-          ),
-          const SizedBox(height: 4),
-          if (isActive)
-            Container(
-              width: 30,
-              height: 2,
-              decoration: BoxDecoration(
-                color: AppTheme.klooigeldBlauw,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLeaderboardPlaceholder() {
-    return Center(
-      key: const ValueKey('leaderboard_view'),
-      child: Text(
-        "Leaderboard Coming Soon",
-        style: TextStyle(
-          fontFamily: AppTheme.neighbor,
-          fontSize: 16,
-          color: AppTheme.black,
         ),
       ),
     );
@@ -930,3 +1224,21 @@ class _AccountScreenState extends State<AccountScreen> {
 }
 
 enum DropdownType { gender, lifestyle }
+
+class _LeaderboardUser {
+  final String name;
+  final String avatar;
+  int klooicash;
+  final bool isCurrentUser;
+  final List<Map<String, dynamic>> badges;
+  int rank;
+
+  _LeaderboardUser({
+    required this.name,
+    required this.avatar,
+    required this.klooicash,
+    required this.badges,
+    required this.isCurrentUser,
+    this.rank = 0,
+  });
+}
