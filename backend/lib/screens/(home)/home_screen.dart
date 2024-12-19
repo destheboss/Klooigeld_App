@@ -2,7 +2,7 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'package:backend/screens/(account)/account_screen.dart';
+import 'package:backend/main.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart'; // For date formatting
@@ -12,12 +12,15 @@ import 'package:provider/provider.dart';
 import '../../components/widgets/home/custom_card.dart';
 import '../../components/widgets/home/transaction_tile.dart';
 import '../../components/widgets/notifications/notification_dropdown.dart';
+import '../../components/widgets/daily_tasks/daily_task_overlay.dart'; // Import the daily task overlay
+import '../../components/widgets/daily_tasks/daily_task_card.dart'; // Import the daily task card
 import '../../theme/app_theme.dart';
 import '../../screens/(learning_road)/learning-road_screen.dart';
 import '../../screens/(rewards)/rewards_shop_screen.dart';
 import '../../screens/(tips)/tips_screen.dart';
+import '../../screens/(account)/account_screen.dart';
 import '../../services/notification_service.dart'; // Import NotificationService
-import '../../main.dart'; // To access the global routeObserver
+import '../../services/daily_task_service.dart'; // Import DailyTaskService
 import '../../services/transaction_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -41,6 +44,7 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
   ];
 
   bool _showNotifications = false;
+  bool _showDailyTasksOverlay = false;
 
   @override
   void initState() {
@@ -48,23 +52,37 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
     _loadInitialData();
   }
 
-  /// Subscribe to the RouteObserver
+  /// Subscribe to the RouteObserver and DailyTaskService
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     routeObserver.subscribe(this, ModalRoute.of(context)!);
+
+    // Subscribe to DailyTaskService changes
+    final taskService = Provider.of<DailyTaskService>(context);
+    taskService.addListener(_onTaskServiceChanged);
   }
 
-  /// Unsubscribe from the RouteObserver to prevent memory leaks
+  /// Unsubscribe from the RouteObserver and DailyTaskService to prevent memory leaks
   @override
   void dispose() {
     routeObserver.unsubscribe(this);
+
+    // Unsubscribe from DailyTaskService
+    final taskService = Provider.of<DailyTaskService>(context, listen: false);
+    taskService.removeListener(_onTaskServiceChanged);
+
     super.dispose();
   }
 
   /// Called when the current route has been popped back to.
   @override
   void didPopNext() {
+    _refreshData();
+  }
+
+  /// Listener for DailyTaskService changes
+  void _onTaskServiceChanged() {
     _refreshData();
   }
 
@@ -75,14 +93,14 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
     _loadTransactions();
   }
 
-  /// Refresh data when returning to HomeScreen
+  /// Refresh data when returning to HomeScreen or when tasks change
   Future<void> _refreshData() async {
     setState(() {
       _usernameFuture = _getUsername();
       _klooicashFuture = _getKlooicash();
     });
     await _loadTransactions();
-    // NEW: After reloading transactions and balance, check balance warnings:
+    // After reloading transactions and balance, check balance warnings:
     final newBalance = await _klooicashFuture!;
     // Call notification service to check if a balance warning is needed
     final notificationService = Provider.of<NotificationService>(context, listen: false);
@@ -147,12 +165,16 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
     });
   }
 
+  void _toggleDailyTasksOverlay() {
+    setState(() {
+      _showDailyTasksOverlay = !_showDailyTasksOverlay;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     _subtitles.shuffle();
     String randomSubtitle = _subtitles.first;
-
-    double percentage = 1.0; // For demonstration only
 
     return Scaffold(
       backgroundColor: AppTheme.nearlyWhite,
@@ -286,69 +308,81 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
 
                             const SizedBox(height: 18),
                             // Daily Tasks Card
-                            CustomCard(
-                              backgroundColor: AppTheme.klooigeldRoze,
-                              shadowColor: Colors.black26,
-                              onTap: () {},
-                              padding: const EdgeInsets.all(16.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
+                            Consumer<DailyTaskService>(
+                              builder: (context, taskService, child) {
+                                double percentage = taskService.completionPercentage;
+                                String percentageText = '${(percentage * 100).toInt()}%';
+
+                                return CustomCard(
+                                  backgroundColor: AppTheme.klooigeldRoze,
+                                  shadowColor: Colors.black26,
+                                  onTap: () {
+                                    _toggleDailyTasksOverlay();
+                                  },
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Container(
-                                        width: 60,
-                                        height: 60,
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: AppTheme.white,
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            '${(percentage * 100).toInt()}%',
-                                            style: const TextStyle(
-                                              fontFamily: AppTheme.neighbor,
-                                              fontSize: 16,
-                                              color: AppTheme.klooigeldRoze,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.center,
                                         children: [
-                                          Transform.translate(
-                                            offset: const Offset(0, 2),
-                                            child: const Text(
-                                              'DAILY TASKS',
-                                              style: TextStyle(
-                                                fontFamily: AppTheme.titleFont,
-                                                fontSize: 24,
-                                                color: AppTheme.white,
+                                          Container(
+                                            width: 60,
+                                            height: 60,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: AppTheme.white, width: 2),
+                                              color: AppTheme.white, // White fill as per issue
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                percentageText,
+                                                style: TextStyle(
+                                                  fontFamily: AppTheme.neighbor,
+                                                  fontSize: 16,
+                                                  color: AppTheme.klooigeldRoze, // Percentage text in card color
+                                                ),
                                               ),
                                             ),
                                           ),
-                                          Transform.translate(
-                                            offset: const Offset(0, -2),
-                                            child: Text(
-                                              percentage == 1.0 ? 'ALL TASKS COMPLETED!' : 'YOU HAVE MORE TO GO!',
-                                              style: const TextStyle(
-                                                fontFamily: AppTheme.neighbor,
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: 16,
-                                                color: AppTheme.white,
+                                          const SizedBox(width: 16),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Transform.translate(
+                                                offset: const Offset(0, 2),
+                                                child: const Text(
+                                                  'DAILY TASKS',
+                                                  style: TextStyle(
+                                                    fontFamily: AppTheme.titleFont,
+                                                    fontSize: 24,
+                                                    color: AppTheme.white,
+                                                  ),
+                                                ),
                                               ),
-                                            ),
+                                              Transform.translate(
+                                                offset: const Offset(0, -2),
+                                                child: Text(
+                                                  percentage == 1.0
+                                                      ? 'ALL TASKS COMPLETED!'
+                                                      : 'YOU HAVE MORE TO GO!',
+                                                  style: const TextStyle(
+                                                    fontFamily: AppTheme.neighbor,
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 16,
+                                                    color: AppTheme.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
+                                      const FaIcon(FontAwesomeIcons.list, size: 28, color: AppTheme.white),
                                     ],
                                   ),
-                                  const FaIcon(FontAwesomeIcons.list, size: 28, color: AppTheme.white),
-                                ],
-                              ),
+                                );
+                              },
                             ),
 
                             const SizedBox(height: 18),
@@ -540,11 +574,17 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
             ),
 
             // Notification Dropdown
-           if (_showNotifications)
-            NotificationDropdown(
-              onClose: _closeNotifications,
-              onKlooicashUpdated: _refreshData, // Add this line
-            ),
+            if (_showNotifications)
+              NotificationDropdown(
+                onClose: _closeNotifications,
+                onKlooicashUpdated: _refreshData, // Add this line
+              ),
+
+            // Daily Task Overlay
+            if (_showDailyTasksOverlay)
+              DailyTaskOverlay(
+                onClose: _toggleDailyTasksOverlay,
+              ),
           ],
         ),
       ),

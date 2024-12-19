@@ -28,9 +28,9 @@ class AvatarUploadWidget extends StatelessWidget {
           children: [
             if (avatarFile == null)
               Image.asset(
-                'assets/images/introduction_screen/upload_avatar.png',
-                width: 150,
-                height: 150,
+                'assets/images/introduction_screen/upload_avatar2.png',
+                width: 135,
+                height: 135,
                 fit: BoxFit.contain,
               )
             else

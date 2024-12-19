@@ -110,6 +110,8 @@ class _AccountScreenState extends State<AccountScreen> {
           _initialAvatarPath!.isNotEmpty &&
           File(_initialAvatarPath!).existsSync()) {
         _avatarFile = File(_initialAvatarPath!);
+      } else {
+        _avatarFile = null; // Ensure it's null if the file doesn't exist
       }
 
       _initLeaderboardUsers();
@@ -123,10 +125,24 @@ class _AccountScreenState extends State<AccountScreen> {
         ? _initialUsername!
         : "YOU";
 
+    String currentUserAvatar;
+    bool isAvatarAsset;
+
+    if (_initialAvatarPath != null &&
+        _initialAvatarPath!.isNotEmpty &&
+        File(_initialAvatarPath!).existsSync()) {
+      currentUserAvatar = _initialAvatarPath!;
+      isAvatarAsset = false;
+    } else {
+      currentUserAvatar = "assets/images/avatar5.png";
+      isAvatarAsset = true;
+    }
+
     final fakeUsers = [
       _LeaderboardUser(
         name: "Wiktor",
         avatar: "assets/images/avatar1.png",
+        isAvatarAsset: true,
         klooicash: 700,
         badges: _pickRandomBadges(),
         isCurrentUser: false,
@@ -134,6 +150,7 @@ class _AccountScreenState extends State<AccountScreen> {
       _LeaderboardUser(
         name: "Andy",
         avatar: "assets/images/avatar2.png",
+        isAvatarAsset: true,
         klooicash: 600,
         badges: _pickRandomBadges(),
         isCurrentUser: false,
@@ -141,6 +158,7 @@ class _AccountScreenState extends State<AccountScreen> {
       _LeaderboardUser(
         name: "Clau",
         avatar: "assets/images/avatar3.png",
+        isAvatarAsset: true,
         klooicash: 550,
         badges: _pickRandomBadges(),
         isCurrentUser: false,
@@ -148,19 +166,17 @@ class _AccountScreenState extends State<AccountScreen> {
       _LeaderboardUser(
         name: "Ray",
         avatar: "assets/images/avatar4.png",
+        isAvatarAsset: true,
         klooicash: 530,
         badges: _pickRandomBadges(),
         isCurrentUser: false,
       ),
     ];
 
-    final currentUserAvatar = _avatarFile != null
-        ? _avatarFile!.path
-        : "assets/images/avatar5.png";
-
     final currentUser = _LeaderboardUser(
       name: currentUserName.toUpperCase(),
       avatar: currentUserAvatar,
+      isAvatarAsset: isAvatarAsset,
       klooicash: _currentUserKlooicash,
       badges: _pickRandomBadges(),
       isCurrentUser: true,
@@ -196,9 +212,11 @@ class _AccountScreenState extends State<AccountScreen> {
     setState(() {
       _initialUsername = _usernameController.text.trim();
       _initialAge = _ageController.text.trim();
-      _initialGender = _selectedGender;
-      _initialLifestyle = _selectedLifestyle;
+      _selectedGender = _selectedGender;
+      _selectedLifestyle = _selectedLifestyle;
       _initialAvatarPath = _avatarFile?.path;
+
+      _initLeaderboardUsers(); // Re-initialize the leaderboard users
     });
 
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
@@ -212,7 +230,7 @@ class _AccountScreenState extends State<AccountScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: AppTheme.klooigeldGroen,
+              color: AppTheme.klooigeldRoze,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppTheme.klooigeldBlauw, width: 2),
             ),
@@ -825,71 +843,71 @@ class _AccountScreenState extends State<AccountScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 41),
+          const SizedBox(height: 40),
           for (var user in _leaderboardUsers) _buildLeaderboardCard(user),
         ],
       ),
     );
   }
-  
+
   // Tooltip-related field to manage the overlay entry
-OverlayEntry? _tooltipOverlayEntry;
+  OverlayEntry? _tooltipOverlayEntry;
 
-/// Displays a custom tooltip above the tapped badge.
-///
-/// - **Parameters:**
-///   - `context`: The BuildContext to find the Overlay.
-///   - `tapPosition`: The global position where the badge was tapped.
-///   - `badgeName`: The name of the badge to display in the tooltip.
-void _showCustomTooltip(BuildContext context, Offset tapPosition, String badgeName) {
-  // Remove any existing tooltip before showing a new one
-  _removeTooltip();
-
-  final overlay = Overlay.of(context);
-  if (overlay == null) return;
-
-  // Create a new OverlayEntry for the tooltip
-  _tooltipOverlayEntry = OverlayEntry(
-    builder: (context) => Positioned(
-      // Position the tooltip relative to the tap position
-      left: tapPosition.dx - 75, // Adjust horizontal position as needed
-      top: tapPosition.dy - 60,  // Adjust vertical position as needed
-      child: Material(
-        color: Colors.transparent, // Ensure the material is transparent
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppTheme.klooigeldBlauw.withOpacity(0.8), // Tooltip background color
-            borderRadius: BorderRadius.circular(8),             // Rounded corners
-            border: Border.all(color: AppTheme.klooigeldBlauw.withOpacity(0.8), width: 2), // Border styling
-          ),
-          child: Text(
-            badgeName,
-            style: const TextStyle(
-              fontFamily: AppTheme.neighbor,
-              fontSize: 14,
-              color: AppTheme.white, // Tooltip text color
-            ),
-          ),
-        ), 
-      ),
-    ),
-  );
-
-  // Insert the tooltip into the overlay
-  overlay.insert(_tooltipOverlayEntry!);
-
-  // Automatically remove the tooltip after 2 seconds
-  Future.delayed(const Duration(seconds: 2), () {
+  /// Displays a custom tooltip above the tapped badge.
+  ///
+  /// - **Parameters:**
+  ///   - `context`: The BuildContext to find the Overlay.
+  ///   - `tapPosition`: The global position where the badge was tapped.
+  ///   - `badgeName`: The name of the badge to display in the tooltip.
+  void _showCustomTooltip(BuildContext context, Offset tapPosition, String badgeName) {
+    // Remove any existing tooltip before showing a new one
     _removeTooltip();
-  });
-}
 
-/// Removes the currently displayed tooltip, if any.
-void _removeTooltip() {
-  _tooltipOverlayEntry?.remove(); // Remove the overlay entry from the overlay
-  _tooltipOverlayEntry = null;    // Reset the reference
-}
+    final overlay = Overlay.of(context);
+    if (overlay == null) return;
+
+    // Create a new OverlayEntry for the tooltip
+    _tooltipOverlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        // Position the tooltip relative to the tap position
+        left: tapPosition.dx - 75, // Adjust horizontal position as needed
+        top: tapPosition.dy - 60,  // Adjust vertical position as needed
+        child: Material(
+          color: Colors.transparent, // Ensure the material is transparent
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.klooigeldBlauw.withOpacity(0.8), // Tooltip background color
+              borderRadius: BorderRadius.circular(8),             // Rounded corners
+              border: Border.all(color: AppTheme.klooigeldBlauw.withOpacity(0.8), width: 2), // Border styling
+            ),
+            child: Text(
+              badgeName,
+              style: const TextStyle(
+                fontFamily: AppTheme.neighbor,
+                fontSize: 14,
+                color: AppTheme.white, // Tooltip text color
+              ),
+            ),
+          ), 
+        ),
+      ),
+    );
+
+    // Insert the tooltip into the overlay
+    overlay.insert(_tooltipOverlayEntry!);
+
+    // Automatically remove the tooltip after 2 seconds
+    Future.delayed(const Duration(seconds: 2), () {
+      _removeTooltip();
+    });
+  }
+
+  /// Removes the currently displayed tooltip, if any.
+  void _removeTooltip() {
+    _tooltipOverlayEntry?.remove(); // Remove the overlay entry from the overlay
+    _tooltipOverlayEntry = null;    // Reset the reference
+  }
 
   Widget _buildLeaderboardCard(_LeaderboardUser user) {
     Color cardColor;
@@ -955,19 +973,26 @@ void _removeTooltip() {
               ),
               const SizedBox(width: 12),
               ClipOval(
-                child: user.isCurrentUser && _avatarFile != null
-                    ? Image.file(
-                        File(user.avatar),
-                        width: 40,
-                        height: 40,
-                        fit: BoxFit.cover,
-                      )
-                    : Image.asset(
+                child: user.isAvatarAsset
+                    ? Image.asset(
                         user.avatar,
                         width: 40,
                         height: 40,
                         fit: BoxFit.cover,
-                      ),
+                      )
+                    : (File(user.avatar).existsSync()
+                        ? Image.file(
+                            File(user.avatar),
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
+                          )
+                        : Image.asset(
+                            "assets/images/avatar5.png",
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
+                          )),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -982,37 +1007,37 @@ void _removeTooltip() {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-                          Row(
-              children: user.badges.map((badge) {
-                return Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: GestureDetector(
-                    onTapDown: (details) {
-                      // Show the custom tooltip when the badge is tapped
-                      _showCustomTooltip(
-                        context,
-                        details.globalPosition,
-                        badge['name'],
-                      );
-                    },
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: FaIcon(
-                          badge['icon'],
-                          size: 16,
-                          color: cardColor,
+              Row(
+                children: user.badges.map((badge) {
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: GestureDetector(
+                      onTapDown: (details) {
+                        // Show the custom tooltip when the badge is tapped
+                        _showCustomTooltip(
+                          context,
+                          details.globalPosition,
+                          badge['name'],
+                        );
+                      },
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: FaIcon(
+                            badge['icon'],
+                            size: 16,
+                            color: cardColor,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              }).take(2).toList(),
+                  );
+                }).take(2).toList(),
               ),
               const SizedBox(width: 12),
               Row(
@@ -1044,183 +1069,184 @@ void _removeTooltip() {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
-      child: GestureDetector(
-        onTap: () {
-          FocusScope.of(context).unfocus();
-        },
-        child: Scaffold(
-          backgroundColor: AppTheme.white,
-          resizeToAvoidBottomInset: true,
-          body: SafeArea(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(),
-                  )
-                : SingleChildScrollView(
-                    controller: _scrollController,
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 30),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 26, vertical: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              InkWell(
+Widget build(BuildContext context) {
+  return WillPopScope(
+    onWillPop: _onWillPop,
+    child: GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.white,
+        resizeToAvoidBottomInset: true,
+        body: SafeArea(
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+              : SingleChildScrollView(
+                  controller: _scrollController,
+                  padding: EdgeInsets.zero,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 30),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 26, vertical: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () async {
+                                bool canPop = await _onWillPop();
+                                if (canPop && mounted) Navigator.pop(context);
+                              },
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: Colors.black, width: 2),
+                                ),
+                                child: const Icon(Icons.chevron_left_rounded,
+                                    size: 30, color: AppTheme.nearlyBlack),
+                              ),
+                            ),
+                            Text(
+                              'ACCOUNT',
+                              style: TextStyle(
+                                fontFamily: AppTheme.titleFont,
+                                fontSize: 45,
+                                color: AppTheme.nearlyBlack2,
+                              ),
+                            ),
+                            PopupMenuButton<int>(
+                              onSelected: _onPopupMenuSelected,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: const BorderSide(
+                                    color: Colors.black, width: 2),
+                              ),
+                              color: AppTheme.white,
+                              elevation: 4,
+                              itemBuilder: (context) => [
+                                PopupMenuItem<int>(
+                                  value: 1,
+                                  child: Row(
+                                    children: const [
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Tips',
+                                        style: TextStyle(
+                                          fontFamily: AppTheme.neighbor,
+                                          fontSize: 14,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                      SizedBox(width: 43),
+                                      FaIcon(FontAwesomeIcons.lightbulb,
+                                          size: 16, color: Colors.black),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              child: InkWell(
                                 borderRadius: BorderRadius.circular(12),
-                                onTap: () async {
-                                  bool canPop = await _onWillPop();
-                                  if (canPop && mounted) Navigator.pop(context);
-                                },
                                 child: Container(
                                   width: 40,
                                   height: 40,
                                   decoration: BoxDecoration(
                                     color: AppTheme.white,
                                     borderRadius: BorderRadius.circular(8),
-                                    border:
-                                        Border.all(color: Colors.black, width: 2),
+                                    border: Border.all(
+                                        color: Colors.black, width: 2),
                                   ),
-                                  child: const Icon(Icons.chevron_left_rounded,
-                                      size: 30, color: AppTheme.nearlyBlack),
+                                  child: const Icon(Icons.more_vert,
+                                      color: AppTheme.nearlyBlack),
                                 ),
                               ),
-                              Text(
-                                'ACCOUNT',
-                                style: TextStyle(
-                                  fontFamily: AppTheme.titleFont,
-                                  fontSize: 45,
-                                  color: AppTheme.nearlyBlack2,
-                                ),
-                              ),
-                              PopupMenuButton<int>(
-                                onSelected: _onPopupMenuSelected,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  side:
-                                      const BorderSide(color: Colors.black, width: 2),
-                                ),
-                                color: AppTheme.white,
-                                elevation: 4,
-                                itemBuilder: (context) => [
-                                  PopupMenuItem<int>(
-                                    value: 1,
-                                    child: Row(
-                                      children: const [
-                                        SizedBox(width: 4),
-                                        Text(
-                                          'Tips',
-                                          style: TextStyle(
-                                            fontFamily: AppTheme.neighbor,
-                                            fontSize: 14,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                        SizedBox(width: 43),
-                                        FaIcon(FontAwesomeIcons.lightbulb,
-                                            size: 16, color: Colors.black),
-                                      ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        height: 110,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Positioned.fill(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 28),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _buildToggleItem(
+                                      icon: FontAwesomeIcons.user,
+                                      label: 'Your Details',
+                                      isActive: _showYourDetails,
+                                      onTap: () {
+                                        setState(() {
+                                          _showYourDetails = true;
+                                          _showGenderDropdown = false;
+                                          _showLifestyleDropdown = false;
+                                        });
+                                      },
                                     ),
-                                  ),
-                                ],
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                          color: Colors.black, width: 2),
+                                    _buildToggleItem(
+                                      icon: FontAwesomeIcons.trophy,
+                                      label: 'Leaderboard',
+                                      isActive: !_showYourDetails,
+                                      onTap: () {
+                                        setState(() {
+                                          _showYourDetails = false;
+                                          _showGenderDropdown = false;
+                                          _showLifestyleDropdown = false;
+                                        });
+                                      },
                                     ),
-                                    child: const Icon(Icons.more_vert,
-                                        color: AppTheme.nearlyBlack),
-                                  ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(
-                          height: 110,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Positioned.fill(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 28),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      _buildToggleItem(
-                                        icon: FontAwesomeIcons.user,
-                                        label: 'Your Details',
-                                        isActive: _showYourDetails,
-                                        onTap: () {
-                                          setState(() {
-                                            _showYourDetails = true;
-                                            _showGenderDropdown = false;
-                                            _showLifestyleDropdown = false;
-                                          });
-                                        },
-                                      ),
-                                      _buildToggleItem(
-                                        icon: FontAwesomeIcons.trophy,
-                                        label: 'Leaderboard',
-                                        isActive: !_showYourDetails,
-                                        onTap: () {
-                                          setState(() {
-                                            _showYourDetails = false;
-                                            _showGenderDropdown = false;
-                                            _showLifestyleDropdown = false;
-                                          });
-                                        },
-                                      ),
-                                    ],
-                                  ),
+                            ),
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: -25,
+                              child: Center(
+                                child: AvatarUploadWidget(
+                                  avatarFile: _avatarFile,
+                                  onTap: _pickAvatarImage,
                                 ),
                               ),
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: -25,
-                                child: Center(
-                                  child: AvatarUploadWidget(
-                                    avatarFile: _avatarFile,
-                                    onTap: _pickAvatarImage,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 0),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          transitionBuilder: (child, animation) {
-                            return FadeTransition(
-                                opacity: animation, child: child);
-                          },
-                          child: _showYourDetails
-                              ? _buildYourDetailsView(context)
-                              : _buildLeaderboardView(),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 0),
+                      AnimatedCrossFade(
+                        duration: const Duration(milliseconds: 300),
+                        firstChild: _buildYourDetailsView(context),
+                        secondChild: _buildLeaderboardView(),
+                        crossFadeState: _showYourDetails
+                            ? CrossFadeState.showFirst
+                            : CrossFadeState.showSecond,
+                        firstCurve: Curves.easeInOut,
+                        secondCurve: Curves.easeInOut,
+                        sizeCurve: Curves.easeInOut,
+                      ),
+                    ],
                   ),
-          ),
+                ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 enum DropdownType { gender, lifestyle }
@@ -1228,6 +1254,7 @@ enum DropdownType { gender, lifestyle }
 class _LeaderboardUser {
   final String name;
   final String avatar;
+  final bool isAvatarAsset; // New flag to indicate avatar type
   int klooicash;
   final bool isCurrentUser;
   final List<Map<String, dynamic>> badges;
@@ -1236,6 +1263,7 @@ class _LeaderboardUser {
   _LeaderboardUser({
     required this.name,
     required this.avatar,
+    required this.isAvatarAsset, // Initialize the flag
     required this.klooicash,
     required this.badges,
     required this.isCurrentUser,

@@ -1,3 +1,5 @@
+// lib/main.dart
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -8,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'screens/(home)/home_screen.dart';
 import 'screens/(introduction)/introduction_screen.dart';
 import 'services/notification_service.dart'; // Import the notification service
+import 'services/daily_task_service.dart'; // Import the daily task service
 
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
@@ -18,8 +21,11 @@ void main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => NotificationService(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => NotificationService()),
+        ChangeNotifierProvider(create: (_) => DailyTaskService()),
+      ],
       child: const KlooigeldApp(),
     ),
   );

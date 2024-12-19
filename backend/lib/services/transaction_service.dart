@@ -1,11 +1,5 @@
 // lib/services/transaction_service.dart
 
-// Explanation of changes:
-// - No structural change from provided code, just ensure it's up to date.
-// - This service is used to identify pending Klaro transactions and update them after payment.
-// - After a Klaro payment, we will update the transaction's date to today's date.
-// - If payment fails, we create a new transaction with the interest added and also update the original pending one.
-
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -84,7 +78,7 @@ class TransactionService {
     return all.where((tx) => tx.isBNPL && tx.isPending).toList();
   }
 
-  // NEW: Helper method to mark a Klaro transaction as paid:
+  // Helper method to mark a Klaro transaction as paid:
   static Future<bool> payKlaroTransaction(String description) async {
     // Pay off the first pending Klaro transaction matching this description.
     final all = await loadTransactions();
@@ -101,7 +95,7 @@ class TransactionService {
     return true;
   }
 
-  // NEW: Add a transaction for interest charges
+  // Add a transaction for interest charges
   static Future<void> addInterestTransaction(String description, int interestAmount) async {
     final interestTx = TransactionRecord(
       description: "$description Interest",
@@ -109,5 +103,21 @@ class TransactionService {
       date: TransactionRecord.getTodayDateString(),
     );
     await prependTransactions([interestTx]);
+  }
+
+  // NEW: Add a Klooicash transaction
+  static Future<void> addKlooicash(int amount) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    int currentKlooicash = prefs.getInt('klooicash') ?? 500;
+    int newKlooicash = currentKlooicash + amount;
+    await prefs.setInt('klooicash', newKlooicash);
+
+    // Add a transaction record
+    TransactionRecord tx = TransactionRecord(
+      description: 'Daily Task Reward',
+      amount: amount,
+      date: TransactionRecord.getTodayDateString(),
+    );
+    await prependTransactions([tx]);
   }
 }
