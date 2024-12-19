@@ -1,15 +1,7 @@
-// lib/screens/(rewards)/rewards_shop_screen.dart
-
-// Explanation of changes:
-// - We now load a flag from SharedPreferences to determine if the promotional offer is active.
-// - If active, we apply a 20% discount to all items in the "shoes" category (categoryId == 1).
-// - For discounted items, we will pass both original and discounted prices to the ShopItemCard,
-//   so it can display the old price (crossed out) and the new discounted price.
-// - We maintain compatibility with existing functionality by only applying discounts if promo is active.
-// - Inline comments added where changes were made.
+// lib/screens/rewards/rewards_shop_screen.dart
 
 import 'dart:async';
-import 'dart:convert';  
+import 'dart:convert';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,6 +12,25 @@ import '../../components/widgets/rewards/shop_item_card.dart';
 import '../../components/widgets/rewards/purchase_overlay.dart';
 import '../../services/item_service.dart';
 import '../../services/transaction_service.dart';
+
+// NEW: Define PurchaseRecord to store itemId and selectedColorName
+class PurchaseRecord {
+  final int itemId;
+  final String selectedColorName;
+
+  PurchaseRecord({required this.itemId, required this.selectedColorName});
+
+  Map<String, dynamic> toJson() => {
+        'itemId': itemId,
+        'selectedColorName': selectedColorName,
+      };
+
+  factory PurchaseRecord.fromJson(Map<String, dynamic> json) =>
+      PurchaseRecord(
+        itemId: json['itemId'],
+        selectedColorName: json['selectedColorName'],
+      );
+}
 
 class RewardsShopScreen extends StatefulWidget {
   final bool isModal;
@@ -59,10 +70,11 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
   ShopItem? _selectedItemForPurchase;
 
   int _klooicash = 500;
-  Set<int> _alreadyOwnedItems = {};
+  List<PurchaseRecord> _alreadyOwnedItems = []; // Changed to List<PurchaseRecord>
   Set<int> _purchasedThisSession = {};
 
-  final GlobalKey<ScaffoldMessengerState> _modalMessengerKey = GlobalKey<ScaffoldMessengerState>();
+  final GlobalKey<ScaffoldMessengerState> _modalMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
 
   // NEW: Track if promotional offer is active
   bool _promotionalOfferActive = false;
@@ -105,7 +117,10 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     }
 
     final storedItems = prefs.getStringList('purchasedItems') ?? [];
-    _alreadyOwnedItems = storedItems.map((e) => int.parse(e)).toSet();
+    _alreadyOwnedItems = storedItems.map((e) {
+      final Map<String, dynamic> jsonMap = jsonDecode(e);
+      return PurchaseRecord.fromJson(jsonMap);
+    }).toList();
 
     // NEW: Check if promotional offer was shown (in NotificationService) and is active
     // If the promoOfferKey was set to true, promotional offers apply.
@@ -134,11 +149,14 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
       _filteredItems = _allItems.where((item) {
         final matchesName = item.name.toLowerCase().contains(query);
 
-        if (widget.isModal && widget.initialCategoryId == 4 && item.categoryId != 4) {
+        if (widget.isModal &&
+            widget.initialCategoryId == 4 &&
+            item.categoryId != 4) {
           return false;
         }
 
-        final matchesCategory = (category == null) || (item.categoryId == category.id);
+        final matchesCategory = (category == null) ||
+            (item.categoryId == category.id);
         return matchesName && matchesCategory;
       }).toList();
     });
@@ -172,23 +190,28 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     }
   }
 
-  Future<void> _onBuyPressed() async {
+  Future<void> _onBuyPressed(String selectedColorName) async {
     if (_selectedItemForPurchase == null) return;
     final item = _selectedItemForPurchase!;
 
-    final effectivePrice = _getEffectivePrice(item); // NEW: Get discounted price if applicable
+    final effectivePrice = _getEffectivePrice(item); // Get discounted price if applicable
 
-    _klooicash -= effectivePrice;
-    _purchasedThisSession.add(item.id);
+    setState(() {
+      _klooicash -= effectivePrice;
+      _purchasedThisSession.add(item.id);
+      _alreadyOwnedItems
+          .add(PurchaseRecord(itemId: item.id, selectedColorName: selectedColorName));
+    });
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     if (!widget.isEphemeral) {
       List<String> storedItems = prefs.getStringList('purchasedItems') ?? [];
-      if (!storedItems.contains(item.id.toString())) {
-        storedItems.add(item.id.toString());
-        await prefs.setStringList('purchasedItems', storedItems);
-      }
+      // Store as JSON string with itemId and selectedColorName
+      final purchaseRecord = PurchaseRecord(
+          itemId: item.id, selectedColorName: selectedColorName);
+      storedItems.add(jsonEncode(purchaseRecord.toJson()));
+      await prefs.setStringList('purchasedItems', storedItems);
 
       if (widget.initialBalance == null) {
         await prefs.setInt('klooicash', _klooicash);
@@ -218,7 +241,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     }).toList();
 
     final now = DateTime.now();
-    final dateString = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    final dateString =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
     final newTx = TransactionRecord(
       description: description,
       amount: amount,
@@ -226,12 +250,15 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     );
     existing.insert(0, newTx);
 
-    final newRawList = existing.map((tx) => jsonEncode(tx.toJson())).toList();
+    final newRawList =
+        existing.map((tx) => jsonEncode(tx.toJson())).toList();
     await prefs.setStringList('user_transactions', newRawList);
   }
 
   void _showPurchaseOverlay(ShopItem item) {
-    final alreadyOwned = _alreadyOwnedItems.contains(item.id) || _purchasedThisSession.contains(item.id);
+    final alreadyOwned = _alreadyOwnedItems
+            .any((purchase) => purchase.itemId == item.id) ||
+        _purchasedThisSession.contains(item.id);
     if (alreadyOwned) {
       if (widget.isModal) {
         _modalMessengerKey.currentState?.removeCurrentSnackBar();
@@ -243,11 +270,13 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
             content: Align(
               alignment: Alignment.bottomCenter,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: AppTheme.klooigeldRoze,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.klooigeldBlauw, width: 2),
+                  border:
+                      Border.all(color: AppTheme.klooigeldBlauw, width: 2),
                 ),
                 child: const Text(
                   "Item already purchased",
@@ -275,11 +304,13 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
             content: Align(
               alignment: Alignment.bottomCenter,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: AppTheme.klooigeldRoze,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.klooigeldBlauw, width: 2),
+                  border:
+                      Border.all(color: AppTheme.klooigeldBlauw, width: 2),
                 ),
                 child: const Text(
                   "Item already purchased",
@@ -314,8 +345,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
     });
   }
 
-  // NEW: Calculate the effective price after discount if promotionalOfferActive
-  // We apply a 20% discount to categoryId == 1 (shoes).
+  // Calculate the effective price after discount if promotionalOfferActive
+  // Apply a 20% discount to categoryId == 1 (shoes).
   int _getEffectivePrice(ShopItem item) {
     if (_promotionalOfferActive && item.categoryId == 1) {
       return (item.price * 0.8).round(); // 20% discount
@@ -330,7 +361,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
         children: [
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 26),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 26, vertical: 26),
               child: Column(
                 children: [
                   // Header row
@@ -351,7 +383,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: Colors.black, width: 2),
                           ),
-                          child: const Icon(Icons.chevron_left_rounded, size: 30, color: AppTheme.nearlyBlack),
+                          child: const Icon(Icons.chevron_left_rounded,
+                              size: 30, color: AppTheme.nearlyBlack),
                         ),
                       ),
                       Text(
@@ -375,7 +408,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Image.asset('assets/images/currency.png', width: 12, height: 20),
+                            Image.asset('assets/images/currency.png',
+                                width: 12, height: 20),
                           ],
                         )
                       else
@@ -383,7 +417,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                           onSelected: (value) {},
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
-                            side: const BorderSide(color: Colors.black, width: 2),
+                            side:
+                                const BorderSide(color: Colors.black, width: 2),
                           ),
                           color: AppTheme.white,
                           elevation: 4,
@@ -402,7 +437,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                                     ),
                                   ),
                                   SizedBox(width: 15),
-                                  FaIcon(FontAwesomeIcons.user, size: 16, color: Colors.black),
+                                  FaIcon(FontAwesomeIcons.user,
+                                      size: 16, color: Colors.black),
                                 ],
                               ),
                             ),
@@ -420,7 +456,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                                     ),
                                   ),
                                   SizedBox(width: 43),
-                                  FaIcon(FontAwesomeIcons.lightbulb, size: 16, color: Colors.black),
+                                  FaIcon(FontAwesomeIcons.lightbulb,
+                                      size: 16, color: Colors.black),
                                 ],
                               ),
                             ),
@@ -433,9 +470,11 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                               decoration: BoxDecoration(
                                 color: AppTheme.white,
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.black, width: 2),
+                                border:
+                                    Border.all(color: Colors.black, width: 2),
                               ),
-                              child: const Icon(Icons.more_vert, color: AppTheme.nearlyBlack),
+                              child: const Icon(Icons.more_vert,
+                                  color: AppTheme.nearlyBlack),
                             ),
                           ),
                         ),
@@ -497,7 +536,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                               onChanged: _onSearchChanged,
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 8, horizontal: 16),
                               ),
                               style: const TextStyle(
                                 fontFamily: AppTheme.neighbor,
@@ -521,12 +561,15 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                                     decoration: BoxDecoration(
                                       color: AppTheme.white,
                                       shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.black, width: 1.5),
+                                      border:
+                                          Border.all(color: Colors.black, width: 1.5),
                                     ),
-                                    child: const Icon(Icons.close, size: 16, color: Colors.black),
+                                    child: const Icon(Icons.close,
+                                        size: 16, color: Colors.black),
                                   ),
                                 )
-                              : const Icon(Icons.search, color: AppTheme.black),
+                              : const Icon(Icons.search,
+                                  color: AppTheme.black),
                         ),
                       ],
                     ),
@@ -548,7 +591,8 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                           )
                         : GridView.builder(
                             physics: const BouncingScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 2,
                               crossAxisSpacing: 16,
                               mainAxisSpacing: 16,
@@ -557,23 +601,40 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                             itemCount: _filteredItems.length,
                             itemBuilder: (context, index) {
                               final item = _filteredItems[index];
-                              final isPurchased = _alreadyOwnedItems.contains(item.id) ||
+                              final isPurchased = _alreadyOwnedItems
+                                      .any((purchase) =>
+                                          purchase.itemId == item.id) ||
                                   _purchasedThisSession.contains(item.id);
 
-                              // NEW: Determine prices for display
+                              // Determine prices for display
                               final originalPrice = item.price;
-                              final discountedPrice = _promotionalOfferActive && item.categoryId == 1
-                                  ? (item.price * 0.8).round()
-                                  : null;
+                              final discountedPrice =
+                                  _promotionalOfferActive && item.categoryId == 1
+                                      ? (item.price * 0.8).round()
+                                      : null;
+
+                              // Determine the purchased color name if already purchased
+                              String? purchasedColorName;
+                              if (isPurchased) {
+                                final purchaseRecord = _alreadyOwnedItems.firstWhere(
+                                    (purchase) => purchase.itemId == item.id,
+                                    orElse: () => PurchaseRecord(
+                                        itemId: item.id,
+                                        selectedColorName: item.colorNames[0]));
+                                purchasedColorName = purchaseRecord.selectedColorName;
+                              }
 
                               return ShopItemCard(
                                 name: item.name,
-                                imagePath: item.imagePath,
+                                imagePath: item.imagePath, // Pass base imagePath
                                 price: originalPrice,
                                 colors: item.colors,
+                                colorNames: item.colorNames, // Pass colorNames
                                 onTap: () => _showPurchaseOverlay(item),
                                 isPurchased: isPurchased,
-                                discountedPrice: discountedPrice, // NEW: pass discounted price if any
+                                discountedPrice: discountedPrice,
+                                purchasedColorName:
+                                    isPurchased ? purchasedColorName : null, // Pass purchasedColorName
                               );
                             },
                           ),
@@ -586,17 +647,28 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
           if (_showOverlay && _selectedItemForPurchase != null)
             PurchaseOverlay(
               itemName: _selectedItemForPurchase!.name,
-              imagePath: _selectedItemForPurchase!.imagePath,
+              imagePath: _selectedItemForPurchase!.imagePath, // Pass base imagePath
               itemPrice: _selectedItemForPurchase!.price,
               colors: _selectedItemForPurchase!.colors,
+              colorNames: _selectedItemForPurchase!.colorNames, // Pass colorNames
               onBuy: _onBuyPressed,
               onCancel: _hidePurchaseOverlay,
-              // NEW: Pass promotionalOfferActive and handle discount in overlay too
-              promotionalOfferActive: _promotionalOfferActive && _selectedItemForPurchase!.categoryId == 1,
+              promotionalOfferActive:
+                  _promotionalOfferActive && _selectedItemForPurchase!.categoryId == 1,
             ),
         ],
       ),
     );
+  }
+
+  // Helper method to get image path based on selected color
+  String _getColorBasedImagePath(ShopItem item, int colorIndex) {
+    String basePath = item.imagePath;
+    // Remove the .png extension
+    String withoutExtension = basePath.substring(0, basePath.lastIndexOf('.'));
+    String extension = basePath.substring(basePath.lastIndexOf('.'));
+    String colorName = item.colorNames[colorIndex];
+    return '${withoutExtension}_$colorName$extension';
   }
 
   @override

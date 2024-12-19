@@ -1,3 +1,5 @@
+// lib/services/item_service.dart
+
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../theme/app_theme.dart';
@@ -19,10 +21,11 @@ class Category {
 class ShopItem {
   final int id;
   final String name;
-  final String imagePath;
+  final String imagePath; // Base image path without color suffix
   final int price;
   final int categoryId;
   final List<Color> colors;
+  final List<String> colorNames; // Maps each color to its name
 
   ShopItem({
     required this.id,
@@ -31,6 +34,7 @@ class ShopItem {
     required this.price,
     required this.categoryId,
     required this.colors,
+    required this.colorNames,
   });
 }
 
@@ -68,7 +72,12 @@ class ItemService {
         imagePath: 'assets/images/shop/shoes1.png',
         price: 120,
         categoryId: 1,
-        colors: [const Color.fromARGB(255, 255, 102, 0), Colors.blue, Colors.green],
+        colors: [
+          const Color.fromARGB(255, 255, 102, 0),
+          Colors.blue,
+          Colors.green
+        ],
+        colorNames: ['orange', 'blue', 'green'], // Corresponding color names
       ),
       ShopItem(
         id: 102,
@@ -77,6 +86,7 @@ class ItemService {
         price: 60,
         categoryId: 2,
         colors: [Colors.brown, Colors.black],
+        colorNames: ['brown', 'black'],
       ),
       ShopItem(
         id: 103,
@@ -84,7 +94,8 @@ class ItemService {
         imagePath: 'assets/images/shop/clothes1.png',
         price: 200,
         categoryId: 3,
-        colors: [Colors.grey, Colors.black, Colors.white],
+        colors: [Colors.black],
+        colorNames: ['black'],
       ),
       ShopItem(
         id: 104,
@@ -93,6 +104,7 @@ class ItemService {
         price: 90,
         categoryId: 1,
         colors: [Colors.white, Colors.black],
+        colorNames: ['white', 'black'],
       ),
       ShopItem(
         id: 201,
@@ -101,6 +113,7 @@ class ItemService {
         price: 10,
         categoryId: 4,
         colors: [Colors.red, Colors.blue],
+        colorNames: ['red', 'blue'],
       ),
       ShopItem(
         id: 202,
@@ -109,6 +122,7 @@ class ItemService {
         price: 5,
         categoryId: 4,
         colors: [Colors.transparent],
+        colorNames: ['transparent'],
       ),
     ];
   }

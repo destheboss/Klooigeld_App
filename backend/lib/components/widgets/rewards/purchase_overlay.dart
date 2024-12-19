@@ -1,21 +1,15 @@
 // lib/components/widgets/rewards/purchase_overlay.dart
 
-// Changes based on requests:
-// - For discounted prices, remove the currency images.
-// - Line-through stays red for old price.
-// - Discount badge has no border, color klooigeldRozeAlt, and should be moved to top-right corner of the product image area.
-// - Invert positions of cancel and buy buttons (Cancel on left, Buy on right).
-// - Inline comments added.
-
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 
 class PurchaseOverlay extends StatefulWidget {
   final String itemName;
-  final String imagePath;
+  final String imagePath; // Base image path without color suffix
   final int itemPrice;
   final List<Color> colors;
-  final VoidCallback onBuy;
+  final List<String> colorNames; // Maps each color to its name
+  final Function(String selectedColorName) onBuy; // Pass selectedColorName
   final VoidCallback onCancel;
   final bool promotionalOfferActive;
 
@@ -25,7 +19,8 @@ class PurchaseOverlay extends StatefulWidget {
     required this.imagePath,
     required this.itemPrice,
     required this.colors,
-    required this.onBuy,
+    required this.colorNames, // Initialize colorNames
+    required this.onBuy, // Pass selectedColorName
     required this.onCancel,
     this.promotionalOfferActive = false,
   });
@@ -46,7 +41,11 @@ class _PurchaseOverlayState extends State<PurchaseOverlay> {
   @override
   Widget build(BuildContext context) {
     final hasDiscount = widget.promotionalOfferActive;
-    final discountedPrice = hasDiscount ? (widget.itemPrice * 0.8).round() : widget.itemPrice;
+    final discountedPrice =
+        hasDiscount ? (widget.itemPrice * 0.8).round() : widget.itemPrice;
+
+    // Update imagePath based on selected color
+    final dynamicImagePath = _getColorBasedImagePath();
 
     return WillPopScope(
       onWillPop: () async {
@@ -88,12 +87,14 @@ class _PurchaseOverlayState extends State<PurchaseOverlay> {
                           height: 150,
                           decoration: const BoxDecoration(
                             color: AppTheme.klooigeldPaars,
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(16)),
                           ),
                           child: ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                            borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(16)),
                             child: Image.asset(
-                              widget.imagePath,
+                              dynamicImagePath, // Use dynamicImagePath
                               fit: BoxFit.cover,
                               width: double.infinity,
                             ),
@@ -104,7 +105,8 @@ class _PurchaseOverlayState extends State<PurchaseOverlay> {
                             top: 8,
                             right: 8,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: AppTheme.klooigeldBlauw,
                                 borderRadius: BorderRadius.circular(8),
@@ -140,9 +142,11 @@ class _PurchaseOverlayState extends State<PurchaseOverlay> {
                         Border? dotBorder;
                         if (isSelected) {
                           dotBorder = Border.all(
-                              color: const Color.fromARGB(33, 0, 0, 0), width: 2);
+                              color: const Color.fromARGB(33, 0, 0, 0),
+                              width: 2);
                         } else if (color == Colors.white) {
-                          dotBorder = Border.all(color: Colors.black, width: 1);
+                          dotBorder =
+                              Border.all(color: Colors.black, width: 1);
                         }
 
                         return GestureDetector(
@@ -192,7 +196,7 @@ class _PurchaseOverlayState extends State<PurchaseOverlay> {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          // New discounted price without currency icon
+                          // New discounted price with currency icon
                           Text(
                             '$discountedPrice',
                             style: TextStyle(
@@ -250,7 +254,8 @@ class _PurchaseOverlayState extends State<PurchaseOverlay> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 12),
                             ),
                             child: Text(
                               'Cancel',
@@ -266,13 +271,18 @@ class _PurchaseOverlayState extends State<PurchaseOverlay> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: widget.onBuy,
+                            onPressed: () {
+                              final selectedColorName =
+                                  widget.colorNames[selectedColorIndex];
+                              widget.onBuy(selectedColorName); // Pass selectedColorName
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.klooigeldGroen,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 12),
                             ),
                             child: Text(
                               'Buy',
@@ -295,5 +305,16 @@ class _PurchaseOverlayState extends State<PurchaseOverlay> {
         ],
       ),
     );
+  }
+
+  // Helper method to get image path based on selected color
+  String _getColorBasedImagePath() {
+    if (widget.colorNames.isEmpty) return widget.imagePath;
+    String basePath = widget.imagePath;
+    // Remove the .png extension
+    String withoutExtension = basePath.substring(0, basePath.lastIndexOf('.'));
+    String extension = basePath.substring(basePath.lastIndexOf('.'));
+    String colorName = widget.colorNames[selectedColorIndex];
+    return '${withoutExtension}_$colorName$extension';
   }
 }

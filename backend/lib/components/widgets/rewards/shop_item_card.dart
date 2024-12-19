@@ -1,22 +1,18 @@
 // lib/components/widgets/rewards/shop_item_card.dart
 
-// Changes made based on requests:
-// - For discounted prices, remove the currency image from both old and new prices.
-// - Line-through for the old price remains red.
-// - Discount badge now has no border and uses AppTheme.klooigeldRozeAlt as background color.
-// - Inline comments added for clarity.
-
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 
 class ShopItemCard extends StatelessWidget {
   final String name;
-  final String imagePath;
+  final String imagePath; // Base image path without color suffix
   final int price;
   final List<Color> colors;
+  final List<String> colorNames; // Maps each color to its name
   final VoidCallback onTap;
   final bool isPurchased;
   final int? discountedPrice;
+  final String? purchasedColorName; // To display the image in the purchased color
 
   const ShopItemCard({
     super.key,
@@ -24,14 +20,26 @@ class ShopItemCard extends StatelessWidget {
     required this.imagePath,
     required this.price,
     required this.colors,
+    required this.colorNames, // Initialize colorNames
     required this.onTap,
     this.isPurchased = false,
     this.discountedPrice,
+    this.purchasedColorName, // Optional: If the item is purchased, show in purchased color
   });
 
   @override
   Widget build(BuildContext context) {
     final hasDiscount = discountedPrice != null && discountedPrice! < price;
+
+    // Determine the image path based on purchasedColorName
+    String displayImagePath = imagePath;
+    if (isPurchased && purchasedColorName != null) {
+      String basePath = imagePath;
+      // Remove the .png extension
+      String withoutExtension = basePath.substring(0, basePath.lastIndexOf('.'));
+      String extension = basePath.substring(basePath.lastIndexOf('.'));
+      displayImagePath = '${withoutExtension}_$purchasedColorName$extension';
+    }
 
     return InkWell(
       onTap: onTap,
@@ -57,14 +65,16 @@ class ShopItemCard extends StatelessWidget {
                   child: Container(
                     decoration: const BoxDecoration(
                       color: AppTheme.klooigeldPaars,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(16)),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(2.0),
                       child: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(16)),
                         child: Image.asset(
-                          imagePath,
+                          displayImagePath, // Use displayImagePath
                           fit: BoxFit.contain,
                           width: double.infinity,
                         ),
@@ -88,18 +98,22 @@ class ShopItemCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Row(
-                        children: colors.map((c) => Container(
-                          width: 8,
-                          height: 8,
-                          margin: const EdgeInsets.only(right: 4),
-                          decoration: BoxDecoration(
-                            color: c,
-                            shape: BoxShape.circle,
-                            border: c == Colors.white
-                                ? Border.all(color: Colors.black, width: 1)
-                                : null,
-                          ),
-                        )).toList(),
+                        children: colors
+                            .map((c) => Container(
+                                  width: 8,
+                                  height: 8,
+                                  margin:
+                                      const EdgeInsets.only(right: 4),
+                                  decoration: BoxDecoration(
+                                    color: c,
+                                    shape: BoxShape.circle,
+                                    border: c == Colors.white
+                                        ? Border.all(
+                                            color: Colors.black, width: 1)
+                                        : null,
+                                  ),
+                                ))
+                            .toList(),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -115,11 +129,12 @@ class ShopItemCard extends StatelessWidget {
                                 fontWeight: FontWeight.w500,
                                 color: AppTheme.klooigeldRozeAlt,
                                 decoration: TextDecoration.lineThrough,
-                                decorationColor: AppTheme.klooigeldRozeAlt,
+                                decorationColor:
+                                    AppTheme.klooigeldRozeAlt,
                               ),
                             ),
                             const SizedBox(width: 6),
-                            // New discounted price, no currency icon
+                            // New discounted price, with currency icon
                             Text(
                               '${discountedPrice!}',
                               style: TextStyle(
@@ -141,9 +156,10 @@ class ShopItemCard extends StatelessWidget {
                             const Spacer(),
                             // Discount badge with no border and color klooigeldRozeAlt
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppTheme.klooigeldRoze,
+                                color: AppTheme.klooigeldRozeAlt, // Updated color
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
