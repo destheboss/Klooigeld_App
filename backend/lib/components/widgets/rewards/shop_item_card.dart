@@ -1,15 +1,18 @@
+// lib/components/widgets/rewards/shop_item_card.dart
+
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 
 class ShopItemCard extends StatelessWidget {
   final String name;
-  final String imagePath;
+  final String imagePath; // Base image path without color suffix
   final int price;
   final List<Color> colors;
+  final List<String> colorNames; // Maps each color to its name
   final VoidCallback onTap;
-
-  /// If true, visually indicate that the item has already been purchased
   final bool isPurchased;
+  final int? discountedPrice;
+  final String? purchasedColorName; // To display the image in the purchased color
 
   const ShopItemCard({
     super.key,
@@ -17,12 +20,27 @@ class ShopItemCard extends StatelessWidget {
     required this.imagePath,
     required this.price,
     required this.colors,
+    required this.colorNames, // Initialize colorNames
     required this.onTap,
     this.isPurchased = false,
+    this.discountedPrice,
+    this.purchasedColorName, // Optional: If the item is purchased, show in purchased color
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasDiscount = discountedPrice != null && discountedPrice! < price;
+
+    // Determine the image path based on purchasedColorName
+    String displayImagePath = imagePath;
+    if (isPurchased && purchasedColorName != null) {
+      String basePath = imagePath;
+      // Remove the .png extension
+      String withoutExtension = basePath.substring(0, basePath.lastIndexOf('.'));
+      String extension = basePath.substring(basePath.lastIndexOf('.'));
+      displayImagePath = '${withoutExtension}_$purchasedColorName$extension';
+    }
+
     return InkWell(
       onTap: onTap,
       splashColor: AppTheme.klooigeldPaars.withOpacity(0.2),
@@ -47,15 +65,16 @@ class ShopItemCard extends StatelessWidget {
                   child: Container(
                     decoration: const BoxDecoration(
                       color: AppTheme.klooigeldPaars,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(16)),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(2.0),
                       child: ClipRRect(
-                        borderRadius:
-                            const BorderRadius.vertical(top: Radius.circular(16)),
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(16)),
                         child: Image.asset(
-                          imagePath,
+                          displayImagePath, // Use displayImagePath
                           fit: BoxFit.contain,
                           width: double.infinity,
                         ),
@@ -83,12 +102,14 @@ class ShopItemCard extends StatelessWidget {
                             .map((c) => Container(
                                   width: 8,
                                   height: 8,
-                                  margin: const EdgeInsets.only(right: 4),
+                                  margin:
+                                      const EdgeInsets.only(right: 4),
                                   decoration: BoxDecoration(
                                     color: c,
                                     shape: BoxShape.circle,
                                     border: c == Colors.white
-                                        ? Border.all(color: Colors.black, width: 1)
+                                        ? Border.all(
+                                            color: Colors.black, width: 1)
                                         : null,
                                   ),
                                 ))
@@ -96,24 +117,81 @@ class ShopItemCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text(
-                            '$price',
-                            style: TextStyle(
-                              fontFamily: AppTheme.neighbor,
-                              fontSize: 14,
-                              color: AppTheme.black,
+                          if (hasDiscount) ...[
+                            // Old price in red, strikethrough, no currency icon here
+                            Text(
+                              '$price',
+                              style: const TextStyle(
+                                fontFamily: AppTheme.neighbor,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.klooigeldRozeAlt,
+                                decoration: TextDecoration.lineThrough,
+                                decorationColor:
+                                    AppTheme.klooigeldRozeAlt,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 3),
-                          Transform.translate(
-                            offset: const Offset(0, 0.2),
-                            child: Image.asset(
-                              'assets/images/currency.png',
-                              width: 10,
-                              height: 10,
+                            const SizedBox(width: 6),
+                            // New discounted price, with currency icon
+                            Text(
+                              '${discountedPrice!}',
+                              style: TextStyle(
+                                fontFamily: AppTheme.neighbor,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.black,
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 3),
+                            Transform.translate(
+                              offset: const Offset(0, 0.2),
+                              child: Image.asset(
+                                'assets/images/currency.png',
+                                width: 10,
+                                height: 10,
+                              ),
+                            ),
+                            const Spacer(),
+                            // Discount badge with no border and color klooigeldRozeAlt
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppTheme.klooigeldRozeAlt, // Updated color
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '-20%',
+                                style: TextStyle(
+                                  fontFamily: AppTheme.neighbor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: AppTheme.white,
+                                ),
+                              ),
+                            ),
+                          ] else ...[
+                            // No discount, show normal price with currency icon
+                            Text(
+                              '$price',
+                              style: TextStyle(
+                                fontFamily: AppTheme.neighbor,
+                                fontSize: 14,
+                                color: AppTheme.black,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            Transform.translate(
+                              offset: const Offset(0, 0.2),
+                              child: Image.asset(
+                                'assets/images/currency.png',
+                                width: 10,
+                                height: 10,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],
@@ -122,8 +200,6 @@ class ShopItemCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // "PURCHASED" overlay if the item is already purchased
           if (isPurchased)
             Positioned.fill(
               child: Container(

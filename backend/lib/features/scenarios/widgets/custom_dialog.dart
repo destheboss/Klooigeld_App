@@ -1,3 +1,5 @@
+// custom_dialog.dart
+
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:backend/theme/app_theme.dart';
@@ -10,6 +12,11 @@ class CustomDialog extends StatelessWidget {
   final dynamic closeValue;
   final MainAxisAlignment actionsAlignment;
 
+  // New optional color parameters with default values
+  final Color borderColor;
+  final Color iconColor;
+  final Color closeButtonColor;
+
   const CustomDialog({
     Key? key,
     required this.icon,
@@ -18,6 +25,9 @@ class CustomDialog extends StatelessWidget {
     required this.actions,
     this.closeValue,
     this.actionsAlignment = MainAxisAlignment.end,
+    this.borderColor = AppTheme.klooigeldBlauw, // Default to existing color
+    this.iconColor = AppTheme.klooigeldBlauw,    // Default to existing color
+    this.closeButtonColor = AppTheme.klooigeldBlauw, // Default to existing color
   }) : super(key: key);
 
   /// Helper function to parse content with **bold** syntax and replace 'K' with an image
@@ -121,7 +131,7 @@ class CustomDialog extends StatelessWidget {
       backgroundColor: AppTheme.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppTheme.klooigeldBlauw, width: 2),
+        side: BorderSide(color: borderColor, width: 2), // Use borderColor
       ),
       child: WillPopScope(
         onWillPop: () async {
@@ -138,7 +148,7 @@ class CustomDialog extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  FaIcon(icon, color: AppTheme.klooigeldBlauw, size: 24),
+                  FaIcon(icon, color: iconColor, size: 24), // Use iconColor
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -158,9 +168,9 @@ class CustomDialog extends StatelessWidget {
                       height: 24,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.klooigeldBlauw, width: 1.8),
+                        border: Border.all(color: closeButtonColor, width: 1.8), // Use closeButtonColor
                       ),
-                      child: const Icon(Icons.close, size: 16, color: AppTheme.klooigeldBlauw),
+                      child: Icon(Icons.close, size: 16, color: closeButtonColor), // Use closeButtonColor
                     ),
                   ),
                 ],

@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:backend/features/scenarios/models/scenario_step.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart'; // for debugPrint
 
@@ -17,34 +18,8 @@ import 'widgets/scenario_message_bubble.dart';
 import 'widgets/scenario_choices_list.dart';
 import 'widgets/custom_dialog.dart';
 import '../../../screens/(rewards)/rewards_shop_screen.dart';
-
-/// Simple model for scenario transactions, matching the JSON structure used in the shop screen.
-/// Updated to allow "Pending" date for BNPL transactions.
-class TransactionRecord {
-  final String description;   // e.g. "Concert Ticket", "Phone Repair", "BNPL - 700K Owed", etc.
-  final int amount;           // negative for purchases, positive for income, or actual cost for BNPL
-  final String date;          // stored as 'YYYY-MM-DD' or "Pending"
-
-  TransactionRecord({
-    required this.description,
-    required this.amount,
-    required this.date,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'description': description,
-        'amount': amount,
-        'date': date,
-      };
-
-  factory TransactionRecord.fromJson(Map<String, dynamic> json) {
-    return TransactionRecord(
-      description: json['description'],
-      amount: json['amount'],
-      date: json['date'],
-    );
-  }
-}
+import '../../../services/transaction_service.dart';
+import '../../../services/notification_service.dart';
 
 class BuyNowPayLaterScenarioScreen extends StatefulWidget {
   const BuyNowPayLaterScenarioScreen({Key? key}) : super(key: key);
@@ -367,7 +342,7 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
                     backgroundColor: AppTheme.klooigeldRozeAlt,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text("Restart", style: TextStyle(fontSize: 16, color: AppTheme.white)),
+                  child: const Text("Restart", style: TextStyle(fontFamily: AppTheme.neighbor, fontSize: 16, color: AppTheme.white)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -378,7 +353,7 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
                     backgroundColor: AppTheme.klooigeldBlauw,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text("Resume", style: TextStyle(fontSize: 16, color: AppTheme.white)),
+                  child: const Text("Resume", style: TextStyle(fontFamily: AppTheme.neighbor, fontSize: 16, color: AppTheme.white)),
                 ),
               ),
             ],
@@ -528,6 +503,9 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
     // Also remove temporary transactions from SharedPreferences
     await prefs.remove('scenario_buynowpaylater_temp_transactions');
     debugPrint("Cleared temporary transactions from SharedPreferences.");
+
+    final notificationService = Provider.of<NotificationService>(context, listen: false);
+    await notificationService.refreshKlaroAlerts();
   }
 
   /// Only log permanent transactions if this run is the first scenario run or the single "Try Again".
@@ -705,7 +683,7 @@ class _BuyNowPayLaterScenarioScreenState extends State<BuyNowPayLaterScenarioScr
               backgroundColor: AppTheme.klooigeldBlauw,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text("OK", style: TextStyle(fontSize: 16, color: AppTheme.white)),
+            child: const Text("OK", style: TextStyle(fontFamily: AppTheme.neighbor, fontSize: 16, color: AppTheme.white)),
           ),
         ],
         closeValue: true,
