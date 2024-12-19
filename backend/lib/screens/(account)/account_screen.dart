@@ -1,12 +1,6 @@
-// Only the parts of the file that changed are shown below, plus necessary context.
-// Changes made:
-// 1. Moved the gender and lifestyle dropdowns out of the row/column containing the cards,
-//    placing them directly below in the main Column. This frees them from the cards'
-//    width constraints and allows them to span the full screen width.
-// 2. Increased the SAVE button text font size from 14 to 18.
-
 import 'dart:io';
 import 'package:backend/features/scenarios/widgets/custom_dialog.dart';
+import 'package:backend/screens/(tips)/tips_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
@@ -27,6 +21,7 @@ class AccountScreen extends StatefulWidget {
 
 class _AccountScreenState extends State<AccountScreen> {
   bool _showYourDetails = true;
+  bool _isLoading = true; // Loading state
 
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
@@ -62,6 +57,12 @@ class _AccountScreenState extends State<AccountScreen> {
   String? _initialLifestyle;
   String? _initialAvatarPath;
 
+  final ScrollController _scrollController = ScrollController();
+
+  // GlobalKeys for dropdowns
+  final GlobalKey _genderDropdownKey = GlobalKey();
+  final GlobalKey _lifestyleDropdownKey = GlobalKey();
+
   bool get _hasChanges {
     return _usernameController.text.trim() != (_initialUsername ?? '') ||
         _ageController.text.trim() != (_initialAge ?? '') ||
@@ -78,24 +79,26 @@ class _AccountScreenState extends State<AccountScreen> {
 
   Future<void> _loadUserData() async {
     final data = await AccountService.loadUserData();
-    _initialUsername = data.username ?? '';
-    _initialAge = data.age?.toString() ?? '';
-    _initialGender = data.gender;
-    _initialLifestyle = data.lifestyle;
-    _initialAvatarPath = data.avatarPath;
+    setState(() {
+      _initialUsername = data.username ?? '';
+      _initialAge = data.age?.toString() ?? '';
+      _initialGender = data.gender;
+      _initialLifestyle = data.lifestyle;
+      _initialAvatarPath = data.avatarPath;
 
-    _usernameController.text = _initialUsername!;
-    _ageController.text = _initialAge!;
-    _selectedGender = _initialGender;
-    _selectedLifestyle = _initialLifestyle;
+      _usernameController.text = _initialUsername!;
+      _ageController.text = _initialAge!;
+      _selectedGender = _initialGender;
+      _selectedLifestyle = _initialLifestyle;
 
-    if (_initialAvatarPath != null &&
-        _initialAvatarPath!.isNotEmpty &&
-        File(_initialAvatarPath!).existsSync()) {
-      setState(() {
+      if (_initialAvatarPath != null &&
+          _initialAvatarPath!.isNotEmpty &&
+          File(_initialAvatarPath!).existsSync()) {
         _avatarFile = File(_initialAvatarPath!);
-      });
-    }
+      }
+
+      _isLoading = false; // Data loaded
+    });
   }
 
   Future<void> _saveUserData() async {
@@ -108,11 +111,13 @@ class _AccountScreenState extends State<AccountScreen> {
       avatarPath: _avatarFile?.path,
     );
 
-    _initialUsername = _usernameController.text.trim();
-    _initialAge = _ageController.text.trim();
-    _initialGender = _selectedGender;
-    _initialLifestyle = _selectedLifestyle;
-    _initialAvatarPath = _avatarFile?.path;
+    setState(() {
+      _initialUsername = _usernameController.text.trim();
+      _initialAge = _ageController.text.trim();
+      _initialGender = _selectedGender;
+      _initialLifestyle = _selectedLifestyle;
+      _initialAvatarPath = _avatarFile?.path;
+    });
 
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -146,7 +151,7 @@ class _AccountScreenState extends State<AccountScreen> {
       ),
     );
 
-    setState(() {});
+    _scrollToTop();
   }
 
   Future<void> _pickAvatarImage() async {
@@ -183,7 +188,16 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
-  void _onPopupMenuSelected(int value) {}
+  void _onPopupMenuSelected(int value) {
+    if (value == 1) {
+      // Navigate to TipsScreen
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const TipsScreen()),
+      );
+    }
+    // Handle other menu options if added in the future
+  }
 
   Future<bool> _onWillPop() async {
     if (_hasChanges) {
@@ -246,10 +260,33 @@ class _AccountScreenState extends State<AccountScreen> {
         ),
       );
       if (confirm == null || confirm == false) {
-        return false; // Stay on page
+        return false;
       }
     }
     return true;
+  }
+
+  Future<void> _scrollToDropdown(GlobalKey key) async {
+    // Wait for the dropdown to render
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (key.currentContext != null) {
+      await Scrollable.ensureVisible(
+        key.currentContext!,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        alignment: 0.1,
+      );
+    }
+  }
+
+  Future<void> _scrollToTop() async {
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   @override
@@ -264,151 +301,170 @@ class _AccountScreenState extends State<AccountScreen> {
           backgroundColor: AppTheme.white,
           resizeToAvoidBottomInset: true,
           body: SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  const SizedBox(height: 30),
-                  // HEADER SECTION
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
+                : SingleChildScrollView(
+                    controller: _scrollController,
+                    padding: EdgeInsets.zero,
+                    child: Column(
                       children: [
-                        InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () async {
-                            bool canPop = await _onWillPop();
-                            if (canPop && mounted) Navigator.pop(context);
-                          },
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: AppTheme.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.black, width: 2),
-                            ),
-                            child: const Icon(Icons.chevron_left_rounded,
-                                size: 30, color: AppTheme.nearlyBlack),
-                          ),
-                        ),
-                        Text(
-                          'ACCOUNT',
-                          style: TextStyle(
-                            fontFamily: AppTheme.titleFont,
-                            fontSize: 45,
-                            color: AppTheme.nearlyBlack2,
-                          ),
-                        ),
-                        PopupMenuButton<int>(
-                          onSelected: _onPopupMenuSelected,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            side: const BorderSide(color: Colors.black, width: 2),
-                          ),
-                          color: AppTheme.white,
-                          elevation: 4,
-                          itemBuilder: (context) => [
-                            PopupMenuItem<int>(
-                              value: 1,
-                              child: Row(
-                                children: const [
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'Tips',
-                                    style: TextStyle(
-                                      fontFamily: AppTheme.neighbor,
-                                      fontSize: 14,
-                                      color: Colors.black,
+                        const SizedBox(height: 30),
+                        // HEADER SECTION
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 26, vertical: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () async {
+                                  bool canPop = await _onWillPop();
+                                  if (canPop && mounted) Navigator.pop(context);
+                                },
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                        color: Colors.black, width: 2),
+                                  ),
+                                  child: const Icon(Icons.chevron_left_rounded,
+                                      size: 30, color: AppTheme.nearlyBlack),
+                                ),
+                              ),
+                              Text(
+                                'ACCOUNT',
+                                style: TextStyle(
+                                  fontFamily: AppTheme.titleFont,
+                                  fontSize: 45,
+                                  color: AppTheme.nearlyBlack2,
+                                ),
+                              ),
+                              PopupMenuButton<int>(
+                                onSelected: _onPopupMenuSelected,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: const BorderSide(
+                                      color: Colors.black, width: 2),
+                                ),
+                                color: AppTheme.white,
+                                elevation: 4,
+                                itemBuilder: (context) => [
+                                  PopupMenuItem<int>(
+                                    value: 1,
+                                    child: Row(
+                                      children: const [
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Tips',
+                                          style: TextStyle(
+                                            fontFamily: AppTheme.neighbor,
+                                            fontSize: 14,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        SizedBox(width: 43),
+                                        FaIcon(FontAwesomeIcons.lightbulb,
+                                            size: 16, color: Colors.black),
+                                      ],
                                     ),
                                   ),
-                                  SizedBox(width: 43),
-                                  FaIcon(FontAwesomeIcons.lightbulb,
-                                      size: 16, color: Colors.black),
                                 ],
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                          color: Colors.black, width: 2),
+                                    ),
+                                    child: const Icon(Icons.more_vert,
+                                        color: AppTheme.nearlyBlack),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: AppTheme.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.black, width: 2),
-                              ),
-                              child:
-                                  const Icon(Icons.more_vert, color: AppTheme.nearlyBlack),
-                            ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
 
-                  // DETAILS / LEADERBOARD SECTION + AVATAR
-                  SizedBox(
-                    height: 110,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Positioned.fill(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 28),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _buildToggleItem(
-                                  icon: FontAwesomeIcons.user,
-                                  label: 'Your Details',
-                                  isActive: _showYourDetails,
-                                  onTap: () {
-                                    setState(() {
-                                      _showYourDetails = true;
-                                    });
-                                  },
+                        // DETAILS / LEADERBOARD SECTION + AVATAR
+                        SizedBox(
+                          height: 110,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Positioned.fill(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 28),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      _buildToggleItem(
+                                        icon: FontAwesomeIcons.user,
+                                        label: 'Your Details',
+                                        isActive: _showYourDetails,
+                                        onTap: () {
+                                          setState(() {
+                                            _showYourDetails = true;
+                                            _showGenderDropdown = false;
+                                            _showLifestyleDropdown = false;
+                                          });
+                                        },
+                                      ),
+                                      _buildToggleItem(
+                                        icon: FontAwesomeIcons.trophy,
+                                        label: 'Leaderboard',
+                                        isActive: !_showYourDetails,
+                                        onTap: () {
+                                          setState(() {
+                                            _showYourDetails = false;
+                                            _showGenderDropdown = false;
+                                            _showLifestyleDropdown = false;
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                _buildToggleItem(
-                                  icon: FontAwesomeIcons.trophy,
-                                  label: 'Leaderboard',
-                                  isActive: !_showYourDetails,
-                                  onTap: () {
-                                    setState(() {
-                                      _showYourDetails = false;
-                                    });
-                                  },
+                              ),
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: -25,
+                                child: Center(
+                                  child: AvatarUploadWidget(
+                                    avatarFile: _avatarFile,
+                                    onTap: _pickAvatarImage,
+                                  ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: -25,
-                          child: Center(
-                            child: AvatarUploadWidget(
-                              avatarFile: _avatarFile,
-                              onTap: _pickAvatarImage,
-                            ),
-                          ),
+                        const SizedBox(height: 0),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          transitionBuilder: (child, animation) {
+                            return FadeTransition(
+                                opacity: animation, child: child);
+                          },
+                          child: _showYourDetails
+                              ? _buildYourDetailsView(context)
+                              : _buildLeaderboardPlaceholder(),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 0),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: _showYourDetails
-                        ? _buildYourDetailsView(context)
-                        : _buildLeaderboardPlaceholder(),
-                  ),
-                ],
-              ),
-            ),
           ),
         ),
       ),
@@ -417,6 +473,7 @@ class _AccountScreenState extends State<AccountScreen> {
 
   Widget _buildYourDetailsView(BuildContext context) {
     return Padding(
+      key: const ValueKey('details_view'),
       padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
       child: Column(
         children: [
@@ -475,7 +532,8 @@ class _AccountScreenState extends State<AccountScreen> {
                   const SizedBox(width: 8),
                   const Align(
                     alignment: Alignment.centerRight,
-                    child: FaIcon(FontAwesomeIcons.user, size: 28, color: AppTheme.white),
+                    child: FaIcon(FontAwesomeIcons.userLarge,
+                        size: 28, color: AppTheme.white),
                   ),
                 ],
               ),
@@ -548,7 +606,6 @@ class _AccountScreenState extends State<AccountScreen> {
 
           const SizedBox(height: 16),
 
-          // GENDER & LIFESTYLE SECTION (no dropdowns inside here anymore)
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -558,8 +615,10 @@ class _AccountScreenState extends State<AccountScreen> {
                   shadowColor: Colors.black26,
                   onTap: () {
                     setState(() {
-                      _showLifestyleDropdown = false;
-                      _showGenderDropdown = !_showGenderDropdown;
+                      _toggleDropdown(
+                        dropdownType: DropdownType.gender,
+                        currentState: _showGenderDropdown,
+                      );
                     });
                   },
                   padding: const EdgeInsets.all(16.0),
@@ -599,8 +658,10 @@ class _AccountScreenState extends State<AccountScreen> {
                   shadowColor: Colors.black26,
                   onTap: () {
                     setState(() {
-                      _showGenderDropdown = false;
-                      _showLifestyleDropdown = !_showLifestyleDropdown;
+                      _toggleDropdown(
+                        dropdownType: DropdownType.lifestyle,
+                        currentState: _showLifestyleDropdown,
+                      );
                     });
                   },
                   padding: const EdgeInsets.all(16.0),
@@ -636,36 +697,56 @@ class _AccountScreenState extends State<AccountScreen> {
             ],
           ),
 
-          // Now place the dropdown lists after the row so they are not constrained by the cards
-          if (_showGenderDropdown)
-            _buildDropdownList(
-              context: context,
-              options: _genders,
-              selectedValue: _selectedGender,
-              onSelected: (val) {
-                setState(() {
-                  _selectedGender = val;
-                  _showGenderDropdown = false;
-                });
-              },
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (child, animation) {
+              return SizeTransition(
+                sizeFactor:
+                    CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+                child: FadeTransition(opacity: animation, child: child),
+              );
+            },
+            child: Column(
+              key: const ValueKey('dropdowns'),
+              children: [
+                if (_showGenderDropdown)
+                  Container(
+                    key: _genderDropdownKey,
+                    child: _buildDropdownList(
+                      context: context,
+                      options: _genders,
+                      selectedValue: _selectedGender,
+                      onSelected: (val) {
+                        setState(() {
+                          _selectedGender = val;
+                          _showGenderDropdown = false;
+                        });
+                        _scrollToTop();
+                      },
+                    ),
+                  ),
+                if (_showLifestyleDropdown)
+                  Container(
+                    key: _lifestyleDropdownKey,
+                    child: _buildDropdownList(
+                      context: context,
+                      options: _lifestyles,
+                      selectedValue: _selectedLifestyle,
+                      onSelected: (val) {
+                        setState(() {
+                          _selectedLifestyle = val;
+                          _showLifestyleDropdown = false;
+                        });
+                        _scrollToTop();
+                      },
+                    ),
+                  ),
+              ],
             ),
-
-          if (_showLifestyleDropdown)
-            _buildDropdownList(
-              context: context,
-              options: _lifestyles,
-              selectedValue: _selectedLifestyle,
-              onSelected: (val) {
-                setState(() {
-                  _selectedLifestyle = val;
-                  _showLifestyleDropdown = false;
-                });
-              },
-            ),
+          ),
 
           const SizedBox(height: 16),
 
-          // SAVE BUTTON with increased font size
           if (_hasChanges)
             SizedBox(
               width: double.infinity,
@@ -682,7 +763,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   "SAVE",
                   style: TextStyle(
                     fontFamily: AppTheme.neighbor,
-                    fontSize: 18, // Increased from 14 to 18
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.white,
                   ),
@@ -693,6 +774,30 @@ class _AccountScreenState extends State<AccountScreen> {
         ],
       ),
     );
+  }
+
+  void _toggleDropdown(
+      {required DropdownType dropdownType, required bool currentState}) {
+    switch (dropdownType) {
+      case DropdownType.gender:
+        _showGenderDropdown = !currentState;
+        if (_showGenderDropdown) {
+          _showLifestyleDropdown = false;
+          _scrollToDropdown(_genderDropdownKey);
+        } else {
+          _scrollToTop();
+        }
+        break;
+      case DropdownType.lifestyle:
+        _showLifestyleDropdown = !currentState;
+        if (_showLifestyleDropdown) {
+          _showGenderDropdown = false;
+          _scrollToDropdown(_lifestyleDropdownKey);
+        } else {
+          _scrollToTop();
+        }
+        break;
+    }
   }
 
   Widget _buildDropdownList({
@@ -719,7 +824,8 @@ class _AccountScreenState extends State<AccountScreen> {
               onTap: () => onSelected(option['label']),
               child: Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? AppTheme.klooigeldBlauw.withOpacity(0.1)
@@ -737,7 +843,8 @@ class _AccountScreenState extends State<AccountScreen> {
                       ),
                     ),
                     const Spacer(),
-                    FaIcon(option['icon'], size: 20, color: AppTheme.nearlyBlack),
+                    FaIcon(option['icon'],
+                        size: 20, color: AppTheme.nearlyBlack),
                   ],
                 ),
               ),
@@ -768,7 +875,12 @@ class _AccountScreenState extends State<AccountScreen> {
               color: isActive ? AppTheme.klooigeldBlauw : AppTheme.grey,
               shape: BoxShape.circle,
               boxShadow: isActive
-                  ? [const BoxShadow(color: Colors.black26, offset: Offset(0, 3), blurRadius: 8)]
+                  ? [
+                      const BoxShadow(
+                          color: Colors.black26,
+                          offset: Offset(0, 3),
+                          blurRadius: 8)
+                    ]
                   : [],
             ),
             child: Center(
@@ -780,9 +892,11 @@ class _AccountScreenState extends State<AccountScreen> {
             label.toUpperCase(),
             style: TextStyle(
               fontFamily: AppTheme.neighbor,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+              fontWeight:
+                  isActive ? FontWeight.bold : FontWeight.w500,
               fontSize: 12,
-              color: isActive ? AppTheme.nearlyBlack2 : AppTheme.grey,
+              color:
+                  isActive ? AppTheme.nearlyBlack2 : AppTheme.grey,
             ),
           ),
           const SizedBox(height: 4),
@@ -814,3 +928,5 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 }
+
+enum DropdownType { gender, lifestyle }
