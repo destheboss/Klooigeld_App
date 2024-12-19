@@ -10,20 +10,41 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  shared_preferences: ^2.3.3
   http: ^1.2.2
+  shared_preferences: ^2.3.3
+  animations: ^2.0.11
+  image_picker: ^1.1.2
+  image_cropper: ^8.0.2
+  font_awesome_flutter: ^10.8.0
+  path_provider: ^2.1.5
+  dash: ^1.0.5
+  provider: ^6.1.2
+  intl: ^0.20.1
+  uuid: ^4.5.1
+  implicitly_animated_reorderable_list: ^0.4.2
+  implicitly_animated_list: ^2.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.3
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/images/rewards/
+    - assets/images/introduction_screen/
+    - assets/images/learning_road/
+    - assets/images/icons/
+    - assets/images/shop/
+    - assets/symbols/
     - assets/json/
     - assets/fonts/
+    
+
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
@@ -46,6 +67,50 @@ flutter:
       fonts:
         - asset: assets/fonts/Neighbor_Black.otf
 
+    # TITLE FONT 2
+    - family: Neighbor
+      fonts:
+        - asset: assets/fonts/Neighbor/Neighbor Black.ttf
+          weight: 900
+        - asset: assets/fonts/Neighbor/Neighbor Black Italic.ttf
+          weight: 900
+          style: italic
+        - asset: assets/fonts/Neighbor/Neighbor Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Neighbor/Neighbor Bold Italic.ttf
+          weight: 700
+          style: italic
+        - asset: assets/fonts/Neighbor/Neighbor Extrabold.ttf
+          weight: 800
+        - asset: assets/fonts/Neighbor/Neighbor Extrabold Italic.ttf
+          weight: 800
+          style: italic
+        - asset: assets/fonts/Neighbor/Neighbor Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Neighbor/Neighbor Medium Italic.ttf
+          weight: 500
+          style: italic
+        - asset: assets/fonts/Neighbor/Neighbor Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Neighbor/Neighbor Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/Neighbor/Neighbor Light.ttf
+          weight: 300
+        - asset: assets/fonts/Neighbor/Neighbor Light Italic.ttf
+          weight: 300
+          style: italic
+        - asset: assets/fonts/Neighbor/Neighbor Extralight.ttf
+          weight: 200
+        - asset: assets/fonts/Neighbor/Neighbor Extralight Italic.ttf
+          weight: 200
+          style: italic
+        - asset: assets/fonts/Neighbor/Neighbor Thin.ttf
+          weight: 100
+        - asset: assets/fonts/Neighbor/Neighbor Thin Italic.ttf
+          weight: 100
+          style: italic
+
     # NORMAL TEXT FONT
     - family: Poppins
       fonts:
@@ -55,3 +120,39 @@ flutter:
         - asset: assets/fonts/Poppins/Poppins-Italic.ttf
           style: italic
 
+# flutter_native_splash:
+#   color: "#B2DF1F"
+#   image: assets/images/splash_image.png
+#   fullscreen: true
+#   android_gravity: center
+#   ios_content_mode: center
+#   branding_mode: bottom
+
+#   android_12:
+#     color: "#B2DF1F"
+#     image: assets/images/app_icon.png
+#     branding: assets/images/branding_image.png
+#     icon_background_color: "#B2DF1F"
+#     fullscreen: true
+#     android_gravity: center
+#     ios_content_mode: center
+#     branding_mode: bottom
+
+#   web: false
+
+# flutter_launcher_icons:
+#   android: "launcher_icon"
+#   ios: true
+#   image_path: "assets/images/launcher_icon.png" 
+#   web:
+#     generate: true
+#     image_path: "assets/icon/launcher_icon.png" 
+#     background_color: "#FFFFFF"
+#     theme_color: "#000000"
+#   windows:
+#     generate: true
+#     image_path: "assets/icon/launcher_icon.png"
+#     icon_size: 256
+#   macos:
+#     generate: true
+#     image_path: "assets/icon/launcher_icon.png"
