@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'package:backend/screens/(account)/account_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart'; // For date formatting
@@ -452,7 +453,14 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                             CustomCard(
                               backgroundColor: AppTheme.klooigeldPaars,
                               shadowColor: Colors.black26,
-                              onTap: () {},
+                              onTap: () async {
+                                // Navigate to the new AccountScreen
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const AccountScreen()),
+                                );
+                                _refreshData();
+                              },
                               padding: const EdgeInsets.all(16.0),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
