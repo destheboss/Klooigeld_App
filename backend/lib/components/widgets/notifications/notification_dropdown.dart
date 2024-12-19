@@ -110,117 +110,120 @@ class _NotificationDropdownState extends State<NotificationDropdown> {
   }
 
   Future<void> _attemptKlaroPayment(
-    String transactionDescription,
-    NotificationService notificationService,
-    AppNotification notif,
-  ) async {
-    int currentBalance = await _getCurrentKlooicash();
+  String transactionDescription,
+  NotificationService notificationService,
+  AppNotification notif,
+) async {
+  int currentBalance = await _getCurrentKlooicash();
 
-    final pending = await TransactionService.getPendingKlaroTransactions();
-    final tx = pending.firstWhere(
-      (t) => t.description == transactionDescription,
-      orElse: () => TransactionRecord(description: '', amount: 0, date: ''),
-    );
+  final pending = await TransactionService.getPendingKlaroTransactions();
+  final tx = pending.firstWhere(
+    (t) => t.description == transactionDescription,
+    orElse: () => TransactionRecord(description: '', amount: 0, date: ''),
+  );
 
-    if (tx.description.isEmpty) {
-      // No matching transaction found, just mark notification read.
-      await notificationService.markAsRead(notif.id);
-      return;
-    }
-
-    final cost = tx.amount.abs();
-    bool? payNow = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => CustomDialog(
-        icon: FontAwesomeIcons.moneyCheckAlt,
-        title: "Pay Klaro Debt",
-        content: "You owe **${tx.description}** for **${cost}K**. Pay now?",
-        actions: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.klooigeldRozeAlt,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    "Cancel",
-                    style: TextStyle(
-                      fontFamily: AppTheme.neighbor,
-                      fontSize: 16,
-                      color: AppTheme.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.klooigeldGroen,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    "Pay",
-                    style: TextStyle(
-                      fontFamily: AppTheme.neighbor,
-                      fontSize: 16,
-                      color: AppTheme.white,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-        closeValue: false,
-        borderColor: AppTheme.klooigeldGroen,
-        iconColor: AppTheme.klooigeldGroen,
-        closeButtonColor: AppTheme.klooigeldGroen,
-      ),
-    );
-
-    if (payNow == true) {
-      if (currentBalance >= cost) {
-        final newBalance = currentBalance - cost;
-        await _setCurrentKlooicash(newBalance);
-        await TransactionService.payKlaroTransaction(transactionDescription);
-
-        await notificationService.markAsRead(notif.id);
-        await notificationService.deleteNotification(notif.id);
-
-        widget.onKlooicashUpdated();
-
-        _showBottomAlert("Payment successful!");
-      } else {
-        final newCost = (cost * 1.1).round();
-        final difference = newCost - cost;
-
-        final updatedTx = TransactionRecord(
-          description: tx.description,
-          amount: -newCost,
-          date: tx.date,
-        );
-
-        await TransactionService.updateTransaction(tx, updatedTx);
-
-        await notificationService.markAsRead(notif.id);
-        await notificationService.addKlaroInterestNotification(updatedTx);
-
-        _showBottomAlert("Not enough funds! Debt increased by ${difference}K");
-      }
-    } else {
-      // User canceled
-    }
+  if (tx.description.isEmpty) {
+    // No matching transaction found, just mark notification read.
+    await notificationService.markAsRead(notif.id);
+    return;
   }
+
+  final cost = tx.amount.abs();
+  bool? payNow = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => CustomDialog(
+      icon: FontAwesomeIcons.moneyCheckAlt,
+      title: "Pay Klaro Debt",
+      content: "You owe **${tx.description}** for **${cost}K**. Pay now?",
+      actions: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.klooigeldRozeAlt,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  "Cancel",
+                  style: TextStyle(
+                    fontFamily: AppTheme.neighbor,
+                    fontSize: 16,
+                    color: AppTheme.white,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.klooigeldGroen,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  "Pay",
+                  style: TextStyle(
+                    fontFamily: AppTheme.neighbor,
+                    fontSize: 16,
+                    color: AppTheme.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+      closeValue: false,
+      borderColor: AppTheme.klooigeldGroen,
+      iconColor: AppTheme.klooigeldGroen,
+      closeButtonColor: AppTheme.klooigeldGroen,
+    ),
+  );
+
+  if (payNow == true) {
+    if (currentBalance >= cost) {
+      final newBalance = currentBalance - cost;
+      await _setCurrentKlooicash(newBalance);
+      await TransactionService.payKlaroTransaction(transactionDescription);
+
+      await notificationService.markAsRead(notif.id);
+      await notificationService.deleteNotification(notif.id);
+
+      widget.onKlooicashUpdated();
+
+      _showBottomAlert("Payment successful!");
+    } else {
+      final newCost = (cost * 1.1).round();
+      final difference = newCost - cost;
+
+      final updatedTx = TransactionRecord(
+        description: tx.description,
+        amount: -newCost,
+        date: tx.date,
+      );
+      await TransactionService.updateTransaction(tx, updatedTx);
+
+      await notificationService.markAsRead(notif.id);
+      await notificationService.addKlaroInterestNotification(updatedTx);
+
+      // **New Line Added Below to Delete the Original Klaro Reminder Notification**
+      await notificationService.deleteNotification(notif.id);
+
+      _showBottomAlert("Not enough funds! Debt increased by ${difference}K");
+    }
+  } else {
+    // User canceled
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {

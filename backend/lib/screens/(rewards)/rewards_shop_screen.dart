@@ -118,9 +118,22 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
 
     final storedItems = prefs.getStringList('purchasedItems') ?? [];
     _alreadyOwnedItems = storedItems.map((e) {
-      final Map<String, dynamic> jsonMap = jsonDecode(e);
-      return PurchaseRecord.fromJson(jsonMap);
-    }).toList();
+  try {
+    final decoded = jsonDecode(e);
+    if (decoded is Map<String, dynamic>) {
+      return PurchaseRecord.fromJson(decoded);
+    } else {
+      // Handle unexpected data type
+      print('Unexpected data format: $decoded');
+      return null;
+    }
+  } catch (error) {
+    // Handle JSON parsing errors
+    print('Error decoding purchased item: $error');
+    return null;
+  }
+}).whereType<PurchaseRecord>().toList();
+
 
     // NEW: Check if promotional offer was shown (in NotificationService) and is active
     // If the promoOfferKey was set to true, promotional offers apply.
