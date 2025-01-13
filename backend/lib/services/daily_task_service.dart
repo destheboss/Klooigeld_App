@@ -38,41 +38,42 @@ class DailyTaskService extends ChangeNotifier {
   }
 
   void _initializeTasks() {
-    _tasks = [
-      DailyTask(
-        id: 'read_tip',
-        title: 'Read a tip!',
-        description: 'Go to the tips screen and read a tip.',
-        icon: FontAwesomeIcons.lightbulb,
-        linkedScreen: LinkedScreen.tips,
-        klooicashReward: 50,
-      ),
-      DailyTask(
-        id: 'play_scenario',
-        title: 'Play a scenario!',
-        description: 'Play a scenario in the learning road screen.',
-        icon: FontAwesomeIcons.gamepad,
-        linkedScreen: LinkedScreen.learningRoad,
-        klooicashReward: 100,
-      ),
-      DailyTask(
-        id: 'unlock_scenario',
-        title: 'Unlock a new scenario!',
-        description: 'Unlock a new scenario in the learning road screen.',
-        icon: FontAwesomeIcons.unlock,
-        linkedScreen: LinkedScreen.learningRoad,
-        klooicashReward: 150,
-      ),
-      DailyTask(
-        id: 'shop_item',
-        title: 'Shop for an item!',
-        description: 'Visit the reward shop screen and shop for an item.',
-        icon: FontAwesomeIcons.shoppingBag,
-        linkedScreen: LinkedScreen.rewardsShop,
-        klooicashReward: 200,
-      ),
-    ];
-  }
+  _tasks = [
+    DailyTask(
+      id: 'read_tip',
+      title: 'Read a tip!',
+      description: 'Go to the tips screen and read a tip.',
+      // Replace icon: FontAwesomeIcons.lightbulb with:
+      dailyTaskIcon: DailyTaskIcon.lightbulb,
+      linkedScreen: LinkedScreen.tips,
+      klooicashReward: 50,
+    ),
+    DailyTask(
+      id: 'play_scenario',
+      title: 'Play a scenario!',
+      description: 'Play a scenario in the learning road screen.',
+      dailyTaskIcon: DailyTaskIcon.gamepad,
+      linkedScreen: LinkedScreen.learningRoad,
+      klooicashReward: 100,
+    ),
+    DailyTask(
+      id: 'unlock_scenario',
+      title: 'Unlock a new scenario!',
+      description: 'Unlock a new scenario in the learning road screen.',
+      dailyTaskIcon: DailyTaskIcon.unlock,
+      linkedScreen: LinkedScreen.learningRoad,
+      klooicashReward: 150,
+    ),
+    DailyTask(
+      id: 'shop_item',
+      title: 'Shop for an item!',
+      description: 'Visit the reward shop screen and shop for an item.',
+      dailyTaskIcon: DailyTaskIcon.shoppingBag,
+      linkedScreen: LinkedScreen.rewardsShop,
+      klooicashReward: 200,
+    ),
+  ];
+}
 
   Future<void> markTaskAsCompleted(String taskId) async {
     int index = _tasks.indexWhere((task) => task.id == taskId);

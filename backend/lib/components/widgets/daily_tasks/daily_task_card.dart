@@ -12,6 +12,20 @@ class DailyTaskCard extends StatelessWidget {
 
   const DailyTaskCard({super.key, required this.task, required this.onTap});
 
+    IconData _getIconData(DailyTaskIcon dailyTaskIcon) {
+    switch (dailyTaskIcon) {
+      case DailyTaskIcon.lightbulb:
+        return FontAwesomeIcons.lightbulb;
+      case DailyTaskIcon.gamepad:
+        return FontAwesomeIcons.gamepad;
+      case DailyTaskIcon.unlock:
+        return FontAwesomeIcons.unlock;
+      case DailyTaskIcon.shoppingBag:
+        return FontAwesomeIcons.shoppingBag;
+    }
+  }
+
+
   Color _getTaskColor() {
     switch (task.id) {
       case 'read_tip':
@@ -89,7 +103,7 @@ class DailyTaskCard extends StatelessWidget {
             height: 24,
             alignment: Alignment.center,
             child: FaIcon(
-              task.icon,
+              _getIconData(task.dailyTaskIcon),
               color: AppTheme.white,
               size: 24,
             ),
