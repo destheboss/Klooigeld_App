@@ -1,5 +1,7 @@
 // screens/(tips)/tips_screen.dart
 
+import 'package:backend/screens/(account)/account_screen.dart';
+import 'package:backend/screens/(learning_road)/learning-road_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -112,7 +114,19 @@ class _TipsScreenState extends State<TipsScreen> {
                           ),
                           PopupMenuButton<int>(
                             onSelected: (value) {
-                              // Placeholder for future menu actions
+                              if (value == 1) {
+                                // Navigate to Account Screen
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const AccountScreen()),
+                                );
+                              } else if (value == 2) {
+                                // Navigate to Games Screen
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const LearningRoadScreen()),
+                                );
+                              }
                             },
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -127,7 +141,7 @@ class _TipsScreenState extends State<TipsScreen> {
                                   children: [
                                     const SizedBox(width: 4),
                                     Text(
-                                      'Settings',
+                                      'Account',
                                       style: TextStyle(
                                         fontFamily: AppTheme.neighbor,
                                         fontSize: 14,
@@ -135,7 +149,7 @@ class _TipsScreenState extends State<TipsScreen> {
                                       ),
                                     ),
                                     const Spacer(),
-                                    const FaIcon(FontAwesomeIcons.gear, size: 16, color: Colors.black),
+                                    const FaIcon(FontAwesomeIcons.userAlt, size: 16, color: Colors.black),
                                   ],
                                 ),
                               ),
@@ -145,7 +159,7 @@ class _TipsScreenState extends State<TipsScreen> {
                                   children: [
                                     const SizedBox(width: 4),
                                     Text(
-                                      'Filters',
+                                      'Games',
                                       style: TextStyle(
                                         fontFamily: AppTheme.neighbor,
                                         fontSize: 14,
@@ -153,7 +167,7 @@ class _TipsScreenState extends State<TipsScreen> {
                                       ),
                                     ),
                                     const Spacer(),
-                                    const FaIcon(FontAwesomeIcons.filter, size: 16, color: Colors.black),
+                                    const FaIcon(FontAwesomeIcons.gamepad, size: 16, color: Colors.black),
                                   ],
                                 ),
                               ),

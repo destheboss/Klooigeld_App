@@ -2,6 +2,8 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'package:backend/screens/(account)/account_screen.dart';
+import 'package:backend/screens/(tips)/tips_screen.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -427,70 +429,79 @@ class _RewardsShopScreenState extends State<RewardsShopScreen> {
                         )
                       else
                         PopupMenuButton<int>(
-                          onSelected: (value) {},
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            side:
-                                const BorderSide(color: Colors.black, width: 2),
+                        onSelected: (value) {
+                          if (value == 1) {
+                            // Navigate to Account Screen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const AccountScreen()),
+                            );
+                          } else if (value == 2) {
+                            // Navigate to Tips Screen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const TipsScreen()),
+                            );
+                          }
+                        },
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: const BorderSide(color: Colors.black, width: 2),
+                        ),
+                        color: AppTheme.white,
+                        elevation: 4,
+                        itemBuilder: (context) => [
+                          PopupMenuItem<int>(
+                            value: 1,
+                            child: Row(
+                              children: const [
+                                SizedBox(width: 4),
+                                Text(
+                                  'Account',
+                                  style: TextStyle(
+                                    fontFamily: AppTheme.neighbor,
+                                    fontSize: 14,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                SizedBox(width: 15),
+                                FaIcon(FontAwesomeIcons.user, size: 16, color: Colors.black),
+                              ],
+                            ),
                           ),
-                          color: AppTheme.white,
-                          elevation: 4,
-                          itemBuilder: (context) => [
-                            PopupMenuItem<int>(
-                              value: 1,
-                              child: Row(
-                                children: const [
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'Account',
-                                    style: TextStyle(
-                                      fontFamily: AppTheme.neighbor,
-                                      fontSize: 14,
-                                      color: Colors.black,
-                                    ),
+                          PopupMenuItem<int>(
+                            value: 2,
+                            child: Row(
+                              children: const [
+                                SizedBox(width: 4),
+                                Text(
+                                  'Tips',
+                                  style: TextStyle(
+                                    fontFamily: AppTheme.neighbor,
+                                    fontSize: 14,
+                                    color: Colors.black,
                                   ),
-                                  SizedBox(width: 15),
-                                  FaIcon(FontAwesomeIcons.user,
-                                      size: 16, color: Colors.black),
-                                ],
-                              ),
+                                ),
+                                SizedBox(width: 43),
+                                FaIcon(FontAwesomeIcons.lightbulb, size: 16, color: Colors.black),
+                              ],
                             ),
-                            PopupMenuItem<int>(
-                              value: 2,
-                              child: Row(
-                                children: const [
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'Tips',
-                                    style: TextStyle(
-                                      fontFamily: AppTheme.neighbor,
-                                      fontSize: 14,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                  SizedBox(width: 43),
-                                  FaIcon(FontAwesomeIcons.lightbulb,
-                                      size: 16, color: Colors.black),
-                                ],
-                              ),
+                          ),
+                        ],
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: AppTheme.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.black, width: 2),
                             ),
-                          ],
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: AppTheme.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border:
-                                    Border.all(color: Colors.black, width: 2),
-                              ),
-                              child: const Icon(Icons.more_vert,
-                                  color: AppTheme.nearlyBlack),
-                            ),
+                            child: const Icon(Icons.more_vert, color: AppTheme.nearlyBlack),
                           ),
                         ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 0),

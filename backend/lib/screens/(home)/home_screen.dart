@@ -217,14 +217,30 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                               future: _getAvatarImagePath(),
                               builder: (context, snap) {
                                 if (snap.hasData && snap.data != null && File(snap.data!).existsSync()) {
-                                  return CircleAvatar(
-                                    radius: 20,
-                                    backgroundImage: FileImage(File(snap.data!)),
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (context) => const AccountScreen()),
+                                      );
+                                    },
+                                    child: CircleAvatar(
+                                      radius: 20,
+                                      backgroundImage: FileImage(File(snap.data!)),
+                                    ),
                                   );
                                 } else {
-                                  return const CircleAvatar(
-                                    radius: 20,
-                                    backgroundImage: AssetImage('assets/images/default_user.png'),
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (context) => const AccountScreen()),
+                                      );
+                                    },
+                                    child: const CircleAvatar(
+                                      radius: 20,
+                                      backgroundImage: AssetImage('assets/images/default_user.png'),
+                                    ),
                                   );
                                 }
                               },

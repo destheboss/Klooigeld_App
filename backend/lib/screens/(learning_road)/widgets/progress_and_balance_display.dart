@@ -1,6 +1,8 @@
 import 'dart:ui';
+import 'package:backend/screens/(account)/account_screen.dart';
 import 'package:backend/screens/(learning_road)/widgets/animated_dialog.dart';
 import 'package:backend/screens/(learning_road)/widgets/progress_line_indicator.dart';
+import 'package:backend/screens/(tips)/tips_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:backend/theme/app_theme.dart'; // Ensure this is accessible
 import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // For the icons in the popup menu
@@ -134,6 +136,19 @@ class _ProgressAndBalanceDisplayState extends State<ProgressAndBalanceDisplay>
                           if (widget.onMenuItemSelected != null) {
                             widget.onMenuItemSelected!(value);
                           }
+                          if (value == 1) {
+                            // Navigate to Account Screen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const AccountScreen()),
+                            );
+                          } else if (value == 2) {
+                            // Navigate to Tips Screen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const TipsScreen()),
+                            );
+                          }
                         },
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -148,7 +163,7 @@ class _ProgressAndBalanceDisplayState extends State<ProgressAndBalanceDisplay>
                               children: [
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Settings',
+                                  'Account',
                                   style: TextStyle(
                                     fontFamily: AppTheme.neighbor,
                                     fontSize: 14,
@@ -156,7 +171,7 @@ class _ProgressAndBalanceDisplayState extends State<ProgressAndBalanceDisplay>
                                   ),
                                 ),
                                 const Spacer(),
-                                const FaIcon(FontAwesomeIcons.gear, size: 16, color: AppTheme.klooigeldBlauw),
+                                const FaIcon(FontAwesomeIcons.user, size: 16, color: AppTheme.klooigeldBlauw),
                               ],
                             ),
                           ),
@@ -166,7 +181,7 @@ class _ProgressAndBalanceDisplayState extends State<ProgressAndBalanceDisplay>
                               children: [
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Filters',
+                                  'Tips',
                                   style: TextStyle(
                                     fontFamily: AppTheme.neighbor,
                                     fontSize: 14,
@@ -174,7 +189,7 @@ class _ProgressAndBalanceDisplayState extends State<ProgressAndBalanceDisplay>
                                   ),
                                 ),
                                 const Spacer(),
-                                const FaIcon(FontAwesomeIcons.filter, size: 16, color: AppTheme.klooigeldBlauw),
+                                const FaIcon(FontAwesomeIcons.lightbulb, size: 16, color: AppTheme.klooigeldBlauw),
                               ],
                             ),
                           ),

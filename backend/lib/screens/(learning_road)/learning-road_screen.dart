@@ -820,9 +820,9 @@ Future<void> _loadProgress() async {
                                       right: 16,
                                       bottom: 16,
                                       child: FloatingActionButton(
-                                        backgroundColor: klooigeldBlauw,
+                                        backgroundColor: klooigeldRoze,
                                         onPressed: unlockNextStop,
-                                        child: const Icon(Icons.arrow_forward),
+                                        child: const Icon(Icons.arrow_forward, color: klooigeldBlauw,),
                                       ),
                                     ),
                                   ],
