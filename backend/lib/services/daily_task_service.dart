@@ -46,7 +46,7 @@ class DailyTaskService extends ChangeNotifier {
       // Replace icon: FontAwesomeIcons.lightbulb with:
       dailyTaskIcon: DailyTaskIcon.lightbulb,
       linkedScreen: LinkedScreen.tips,
-      klooicashReward: 50,
+      klooicashReward: 25,
     ),
     DailyTask(
       id: 'play_scenario',
@@ -54,7 +54,7 @@ class DailyTaskService extends ChangeNotifier {
       description: 'Play a scenario in the learning road screen.',
       dailyTaskIcon: DailyTaskIcon.gamepad,
       linkedScreen: LinkedScreen.learningRoad,
-      klooicashReward: 100,
+      klooicashReward: 25,
     ),
     DailyTask(
       id: 'unlock_scenario',
@@ -62,7 +62,7 @@ class DailyTaskService extends ChangeNotifier {
       description: 'Unlock a new scenario in the learning road screen.',
       dailyTaskIcon: DailyTaskIcon.unlock,
       linkedScreen: LinkedScreen.learningRoad,
-      klooicashReward: 150,
+      klooicashReward: 50,
     ),
     DailyTask(
       id: 'shop_item',
@@ -70,7 +70,7 @@ class DailyTaskService extends ChangeNotifier {
       description: 'Visit the reward shop screen and shop for an item.',
       dailyTaskIcon: DailyTaskIcon.shoppingBag,
       linkedScreen: LinkedScreen.rewardsShop,
-      klooicashReward: 200,
+      klooicashReward: 50,
     ),
   ];
 }
