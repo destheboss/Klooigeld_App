@@ -22,7 +22,7 @@
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/klooigeld.git
+   git clone https://github.com/destheboss/Klooigeld_App
    ```
 2. Navigate into the project directory:
    ```bash
@@ -31,29 +31,18 @@
 3. Set up the backend:
    ```bash
    cd backend
-   npm install
-   ```
-4. Set up the frontend:
-   ```bash
-   cd frontend
    flutter pub get
    ```
 
 ### Usage
-1. Start the backend server:
-   ```bash
-   cd backend
-   npm start
-   ```
-2. Run the Flutter app:
+1. Run the Flutter app:
    ```bash
    cd frontend
    flutter run
    ```
 
 ## Repository Structure
-- `frontend/`: Flutter app source code
-- `backend/`: Node.js API code
+- `backend/`: Flutter App
 - `docs/`: Documentation files (Git workflow, Contributing, Changelog)
 
 ## Contributing
