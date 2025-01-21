@@ -51,9 +51,9 @@ class ScenarioMessageBubble extends StatelessWidget {
               Text(
                 msg["speaker"],
                 style: TextStyle(
-                  fontFamily: AppTheme.neighbor,
+                  fontFamily: AppTheme.fontName,
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontSize: 13,
                   color: AppTheme.klooigeldBlauw,
                 ),
               ),
@@ -92,9 +92,9 @@ class ScenarioMessageBubble extends StatelessWidget {
               Text(
                 msg["speaker"],
                 style: TextStyle(
-                  fontFamily: AppTheme.neighbor,
+                  fontFamily: AppTheme.fontName,
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontSize: 13,
                   color: AppTheme.klooigeldBlauw,
                 ),
               ),
@@ -215,9 +215,9 @@ class ScenarioMessageBubble extends StatelessWidget {
     return TextSpan(
       text: text,
       style: TextStyle(
-        fontFamily: AppTheme.neighbor,
+        fontFamily: AppTheme.fontName,
         fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-        fontSize: 14,
+        fontSize: 13,
         color: Colors.black,
         height: 1.4,
       ),

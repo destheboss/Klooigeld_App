@@ -1,5 +1,3 @@
-// lib/screens/home_screen.dart
-
 import 'dart:convert';
 import 'dart:io';
 import 'package:backend/main.dart';
@@ -8,19 +6,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart'; // For date formatting
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+// Use updated import for the new InfoOverlay
+import '../../components/widgets/overlays/info_overlay.dart'; // Overlay that shows app info
 
 import '../../components/widgets/home/custom_card.dart';
 import '../../components/widgets/home/transaction_tile.dart';
 import '../../components/widgets/notifications/notification_dropdown.dart';
-import '../../components/widgets/daily_tasks/daily_task_overlay.dart'; // Import the daily task overlay
-import '../../components/widgets/daily_tasks/daily_task_card.dart'; // Import the daily task card
+import '../../components/widgets/daily_tasks/daily_task_overlay.dart'; // Daily task overlay
+import '../../components/widgets/daily_tasks/daily_task_card.dart';   // Daily task card
 import '../../theme/app_theme.dart';
 import '../../screens/(learning_road)/learning-road_screen.dart';
 import '../../screens/(rewards)/rewards_shop_screen.dart';
 import '../../screens/(tips)/tips_screen.dart';
 import '../../screens/(account)/account_screen.dart';
-import '../../services/notification_service.dart'; // Import NotificationService
-import '../../services/daily_task_service.dart'; // Import DailyTaskService
+import '../../services/notification_service.dart'; // NotificationService
+import '../../services/daily_task_service.dart';    // DailyTaskService
 import '../../services/transaction_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -45,6 +47,9 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
 
   bool _showNotifications = false;
   bool _showDailyTasksOverlay = false;
+
+  /// Controls the info overlay that displays app credits
+  bool _showInfoOverlay = false;
 
   @override
   void initState() {
@@ -100,31 +105,29 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
       _klooicashFuture = _getKlooicash();
     });
     await _loadTransactions();
-    // After reloading transactions and balance, check balance warnings:
     final newBalance = await _klooicashFuture!;
-    // Call notification service to check if a balance warning is needed
     final notificationService = Provider.of<NotificationService>(context, listen: false);
     await notificationService.checkBalanceWarnings(newBalance);
   }
 
   Future<String> _getUsername() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
     return prefs.getString('username') ?? 'User';
   }
 
   Future<int> _getKlooicash() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
     return prefs.getInt('klooicash') ?? 500;
   }
 
   Future<String?> _getAvatarImagePath() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
     return prefs.getString('avatarImagePath');
   }
 
   /// Load all permanent transactions from SharedPreferences
   Future<void> _loadTransactions() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
     final rawList = prefs.getStringList('user_transactions') ?? [];
     final List<TransactionRecord> loaded = rawList.map((e) {
       final map = jsonDecode(e) as Map<String, dynamic>;
@@ -136,19 +139,17 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
     });
   }
 
-  /// Helper method to format the stored date:
-  /// If date is "Pending", return "Pending" directly.
+  /// Helper to format date:
+  /// If date is "Pending", return "Pending".
   /// Otherwise parse YYYY-MM-DD and format as "Month d".
   String _formatDate(String dateStr) {
     if (dateStr.toLowerCase() == "pending") {
-      /// NEW: "Pending" placeholder for Klaro or future-due transactions
       return "Pending";
     }
     try {
       final parsed = DateTime.parse(dateStr);
       return DateFormat("MMMM d").format(parsed);
     } catch (e) {
-      // Fallback if parsing fails
       return dateStr;
     }
   }
@@ -171,10 +172,17 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
     });
   }
 
+  /// Toggles the info overlay
+  void _toggleInfoOverlay() {
+    setState(() {
+      _showInfoOverlay = !_showInfoOverlay;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     _subtitles.shuffle();
-    String randomSubtitle = _subtitles.first;
+    final randomSubtitle = _subtitles.first;
 
     return Scaffold(
       backgroundColor: AppTheme.nearlyWhite,
@@ -188,22 +196,41 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                String username = snapshot.data![0].toString().toUpperCase();
-                int klooicash = snapshot.data![1] as int;
+                final username = snapshot.data![0].toString().toUpperCase();
+                final klooicash = snapshot.data![1] as int;
 
                 return SingleChildScrollView(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 26.0, horizontal: 26.0),
+                    padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 26),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Icons row
+                        /// ICONS ROW
+
+
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
+                            // Info icon (aligned above the "H" in the title)
+                            Transform.translate(
+                              offset: const Offset(-9, 0), // Adjust X and Y offsets to position the icon
+                              child: IconButton(
+                                icon: SvgPicture.asset(
+                                  'assets/images/icons/terminal-solid.svg',
+                                  width: 22,
+                                  height: 22,
+                                ),
+                                onPressed: _toggleInfoOverlay,
+                              ),
+                            ),
+
+
+                            // Spacer to push the other icons to the right
+                            const Spacer(),
+
+                            // Notification icon
                             Consumer<NotificationService>(
                               builder: (context, notificationService, child) {
-                                String iconPath = notificationService.notifications.isNotEmpty
+                                final iconPath = notificationService.notifications.isNotEmpty
                                     ? 'assets/images/icons/email-notif.png'
                                     : 'assets/images/icons/email.png';
                                 return IconButton(
@@ -213,10 +240,14 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                               },
                             ),
                             const SizedBox(width: 4),
+
+                            // Avatar
                             FutureBuilder<String?>(
                               future: _getAvatarImagePath(),
                               builder: (context, snap) {
-                                if (snap.hasData && snap.data != null && File(snap.data!).existsSync()) {
+                                if (snap.hasData &&
+                                    snap.data != null &&
+                                    File(snap.data!).existsSync()) {
                                   return GestureDetector(
                                     onTap: () {
                                       Navigator.push(
@@ -247,8 +278,10 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                             ),
                           ],
                         ),
+
                         const SizedBox(height: 5),
-                        // Greeting and subtitle
+
+                        /// GREETING AND SUBTITLE
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -275,16 +308,17 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        // Main Cards
+
+                        /// MAIN CARDS
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Klooicash Balance
+                            /// KLOOICASH BALANCE
                             CustomCard(
                               backgroundColor: AppTheme.klooigeldGroen,
                               shadowColor: Colors.black26,
                               onTap: () {},
-                              padding: const EdgeInsets.all(16.0),
+                              padding: const EdgeInsets.all(16),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -321,21 +355,19 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                                 ],
                               ),
                             ),
-
                             const SizedBox(height: 18),
-                            // Daily Tasks Card
+
+                            /// DAILY TASKS CARD
                             Consumer<DailyTaskService>(
                               builder: (context, taskService, child) {
-                                double percentage = taskService.completionPercentage;
-                                String percentageText = '${(percentage * 100).toInt()}%';
+                                final percentage = taskService.completionPercentage;
+                                final percentageText = '${(percentage * 100).toInt()}%';
 
                                 return CustomCard(
                                   backgroundColor: AppTheme.klooigeldRoze,
                                   shadowColor: Colors.black26,
-                                  onTap: () {
-                                    _toggleDailyTasksOverlay();
-                                  },
-                                  padding: const EdgeInsets.all(16.0),
+                                  onTap: _toggleDailyTasksOverlay,
+                                  padding: const EdgeInsets.all(16),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
@@ -348,7 +380,7 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                                             decoration: BoxDecoration(
                                               shape: BoxShape.circle,
                                               border: Border.all(color: AppTheme.white, width: 2),
-                                              color: AppTheme.white, // White fill as per issue
+                                              color: AppTheme.white,
                                             ),
                                             child: Center(
                                               child: Text(
@@ -356,7 +388,7 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                                                 style: TextStyle(
                                                   fontFamily: AppTheme.neighbor,
                                                   fontSize: 16,
-                                                  color: AppTheme.klooigeldRoze, // Percentage text in card color
+                                                  color: AppTheme.klooigeldRoze,
                                                 ),
                                               ),
                                             ),
@@ -400,18 +432,20 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                                 );
                               },
                             ),
-
                             const SizedBox(height: 18),
-                            // Tips Card
+
+                            /// TIPS CARD
                             CustomCard(
                               backgroundColor: AppTheme.klooigeldPaars,
                               shadowColor: Colors.black26,
                               onTap: () async {
-                                // When returning from TipsScreen, reload transactions to reflect any changes.
-                                await Navigator.push(context, MaterialPageRoute(builder: (context) => const TipsScreen()));
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const TipsScreen()),
+                                );
                                 _refreshData();
                               },
-                              padding: const EdgeInsets.all(16.0),
+                              padding: const EdgeInsets.all(16),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: const [
@@ -427,9 +461,9 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                                 ],
                               ),
                             ),
-
                             const SizedBox(height: 18),
-                            // KLOOI GAMES and KLOOI SHOP
+
+                            /// KLOOI GAMES + KLOOI SHOP
                             Row(
                               children: [
                                 Expanded(
@@ -437,14 +471,13 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                                     backgroundColor: AppTheme.klooigeldBlauw,
                                     shadowColor: Colors.black26,
                                     onTap: () async {
-                                      // Refresh upon returning from the scenario screen
                                       await Navigator.push(
                                         context,
                                         MaterialPageRoute(builder: (context) => const LearningRoadScreen()),
                                       );
                                       _refreshData();
                                     },
-                                    padding: const EdgeInsets.all(16.0),
+                                    padding: const EdgeInsets.all(16),
                                     child: Column(
                                       children: const [
                                         FaIcon(FontAwesomeIcons.gamepad, size: 48, color: AppTheme.white),
@@ -469,14 +502,13 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                                     backgroundColor: AppTheme.klooigeldGroen,
                                     shadowColor: Colors.black26,
                                     onTap: () async {
-                                      // When the user finishes shopping, we want to refresh
                                       await Navigator.push(
                                         context,
                                         MaterialPageRoute(builder: (context) => const RewardsShopScreen()),
                                       );
-                                      _refreshData(); // refresh after shop
+                                      _refreshData();
                                     },
-                                    padding: const EdgeInsets.all(16.0),
+                                    padding: const EdgeInsets.all(16),
                                     child: Column(
                                       children: const [
                                         FaIcon(FontAwesomeIcons.bagShopping, size: 48, color: AppTheme.white),
@@ -497,21 +529,20 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 18),
-                            // ACCOUNT
+
+                            /// ACCOUNT
                             CustomCard(
                               backgroundColor: AppTheme.klooigeldPaars,
                               shadowColor: Colors.black26,
                               onTap: () async {
-                                // Navigate to the new AccountScreen
                                 await Navigator.push(
                                   context,
                                   MaterialPageRoute(builder: (context) => const AccountScreen()),
                                 );
                                 _refreshData();
                               },
-                              padding: const EdgeInsets.all(16.0),
+                              padding: const EdgeInsets.all(16),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: const [
@@ -527,9 +558,9 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                                 ],
                               ),
                             ),
-
                             const SizedBox(height: 20),
-                            // Transactions Section
+
+                            /// TRANSACTIONS SECTION
                             const Text(
                               'TRANSACTIONS',
                               style: TextStyle(
@@ -540,11 +571,9 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                               ),
                             ),
                             const SizedBox(height: 4),
-
-                            // If no transactions, show a simple note. Otherwise, show the list.
                             if (_transactions.isEmpty)
                               const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 8.0),
+                                padding: EdgeInsets.symmetric(vertical: 8),
                                 child: Text(
                                   'No transactions yet',
                                   style: TextStyle(
@@ -555,22 +584,25 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                                 ),
                               )
                             else
-                              // Refactored Transaction List with Limited Height and Scrollability
                               SizedBox(
-                                // Assuming each TransactionTile has a height of approximately 70 pixels
-                                height: _transactions.length > 3 ? 3 * 70.0 + 2 * 1.0 : _transactions.length * 70.0,
+                                height: _transactions.length > 3
+                                    ? 3 * 70.0 + 2
+                                    : _transactions.length * 70.0,
                                 child: ListView.separated(
                                   physics: _transactions.length > 3
                                       ? const AlwaysScrollableScrollPhysics()
                                       : const NeverScrollableScrollPhysics(),
                                   itemCount: _transactions.length,
-                                  separatorBuilder: (context, index) => const SizedBox(height: 0),
+                                  separatorBuilder: (context, index) =>
+                                      const SizedBox(height: 0),
                                   itemBuilder: (context, index) {
                                     final tx = _transactions[index];
-                                    final sign = tx.amount > 0 ? '+' : (tx.amount < 0 ? '-' : '');
-                                    /// If it's a pending Klaro transaction with amount=0,
-                                    /// we still show "0 K" to clarify that the real payment is pending.
-                                    final formattedAmount = tx.amount != 0 ? '$sign${tx.amount.abs()} K' : '0 K';
+                                    final sign = tx.amount > 0
+                                        ? '+'
+                                        : (tx.amount < 0 ? '-' : '');
+                                    final formattedAmount = tx.amount != 0
+                                        ? '$sign${tx.amount.abs()} K'
+                                        : '0 K';
 
                                     return TransactionTile(
                                       description: tx.description,
@@ -589,18 +621,20 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
               },
             ),
 
-            // Notification Dropdown
+            /// NOTIFICATION DROPDOWN
             if (_showNotifications)
               NotificationDropdown(
                 onClose: _closeNotifications,
-                onKlooicashUpdated: _refreshData, // Add this line
+                onKlooicashUpdated: _refreshData,
               ),
 
-            // Daily Task Overlay
+            /// DAILY TASK OVERLAY
             if (_showDailyTasksOverlay)
-              DailyTaskOverlay(
-                onClose: _toggleDailyTasksOverlay,
-              ),
+              DailyTaskOverlay(onClose: _toggleDailyTasksOverlay),
+
+            /// INFO OVERLAY
+            if (_showInfoOverlay)
+              InfoOverlay(onClose: _toggleInfoOverlay),
           ],
         ),
       ),
